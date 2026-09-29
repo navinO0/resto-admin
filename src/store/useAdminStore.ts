@@ -35,9 +35,9 @@ interface AdminState {
 
   // Actions
   initAuthAndSync: () => Promise<void>;
-  login: (email: string, password: string, tenantId?: string) => Promise<{ success: boolean; message?: string }>;
+  login: (email: string, password: string, tenantId?: string, customUrl?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
-  setConnectionConfig: (serverUrl: string, tenantId: string, restaurantName?: string) => Promise<boolean>;
+  setConnectionConfig: (serverUrl: string, tenantId?: string, restaurantName?: string) => Promise<boolean>;
   setFilter: (filter: 'all' | 'pending' | 'kitchen' | 'ready' | 'takeaway') => void;
   fetchSessions: () => Promise<void>;
   fetchMenu: () => Promise<void>;
@@ -63,7 +63,7 @@ interface AdminState {
   updateAcceptedPincodes: (pincodes: string[]) => Promise<boolean>;
 }
 
-const DEFAULT_SERVER_URL = process.env.EXPO_PUBLIC_API_URL || 'http://100.109.147.65:4000';
+const DEFAULT_SERVER_URL = process.env.EXPO_PUBLIC_API_URL || '';
 
 export const useAdminStore = create<AdminState>((set, get) => ({
   serverUrl: DEFAULT_SERVER_URL,
@@ -102,11 +102,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         storage.getItem('auth_user'),
       ]);
 
-      let activeUrl = savedUrl || DEFAULT_SERVER_URL;
-      if (activeUrl.includes('navin.lol')) {
-        activeUrl = DEFAULT_SERVER_URL;
-        await storage.setItem('server_url', DEFAULT_SERVER_URL);
-      }
+      const activeUrl = (savedUrl && savedUrl.trim()) ? savedUrl.trim() : DEFAULT_SERVER_URL;
 
       if (savedToken && savedUser) {
         try {
@@ -123,6 +119,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
             authToken: savedToken,
             currentUser: user,
             isAuthenticated: true,
+            isConnected: true,
           });
 
           // Connect socket to this tenant's isolated room
@@ -148,7 +145,10 @@ export const useAdminStore = create<AdminState>((set, get) => ({
           set({ isAuthenticated: false, currentUser: null, authToken: null });
         }
       } else {
-        // Not authenticated — prompt user for credentials
+        // Not authenticated — prompt user for credentials with saved serverUrl
+        if (activeUrl) {
+          setApiConfig(activeUrl, '');
+        }
         set({
           serverUrl: activeUrl,
           isAuthenticated: false,
@@ -167,7 +167,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     }
   },
 
-  login: async (email, password, tenantId) => {
+  login: async (email, password, tenantId, customUrl) => {
     try {
       set({ isLoading: true });
 
@@ -179,8 +179,17 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         incomingAlert: null,
       });
 
-      const activeUrl = get().serverUrl;
-      const res = await apiService.login(email, password, tenantId);
+      const activeUrl = (customUrl && customUrl.trim()) ? customUrl.trim() : (get().serverUrl || DEFAULT_SERVER_URL);
+
+      // CRITICAL: Immediately update client config and persistent storage BEFORE calling login
+      setApiConfig(activeUrl, tenantId || '');
+      if (activeUrl) {
+        await storage.setItem('server_url', activeUrl);
+      }
+      set({ serverUrl: activeUrl });
+
+      console.log(`[AdminStore] 🔑 Staff login for: ${email} targeting backend: ${activeUrl}`);
+      const res = await apiService.login(email, password, tenantId, activeUrl);
       const user = res.user;
       const token = res.token;
 
@@ -199,11 +208,13 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       setAuthToken(token);
 
       set({
+        serverUrl: activeUrl,
         tenantId: verifiedTenantId,
         authToken: token,
         currentUser: user,
         isAuthenticated: true,
         isLoading: false,
+        isConnected: true,
       });
 
       // Connect socket specifically to the verified tenant room
@@ -264,24 +275,47 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     });
   },
 
-  setConnectionConfig: async (serverUrl, tenantId, restaurantName) => {
+  setConnectionConfig: async (serverUrl, tenantId = '', restaurantName) => {
     try {
       set({ isLoading: true });
-      const config = await apiService.testConnection(serverUrl, tenantId);
+      const cleanUrl = (serverUrl || '').trim();
+      const cleanTenant = (tenantId || '').trim();
 
-      setApiConfig(serverUrl, tenantId);
-      await storage.setItem('server_url', serverUrl);
+      if (cleanUrl) {
+        setApiConfig(cleanUrl, cleanTenant);
+        await storage.setItem('server_url', cleanUrl);
+        set({ serverUrl: cleanUrl });
+      }
+
+      if (cleanTenant) {
+        await storage.setItem('tenant_id', cleanTenant);
+        set({ tenantId: cleanTenant });
+      }
+
+      let connected = false;
+      try {
+        const config = await apiService.testConnection(cleanUrl, cleanTenant);
+        if (config?.name) {
+          set({
+            restaurantName: restaurantName || config.name,
+            currency: config?.operations?.currency || '₹',
+          });
+        }
+        connected = true;
+      } catch (testErr) {
+        console.warn('[AdminStore] testConnection check error:', testErr);
+      }
 
       set({
-        serverUrl,
-        restaurantName: restaurantName || config?.name || 'Restaurant Admin',
-        currency: config?.operations?.currency || '₹',
+        serverUrl: cleanUrl,
+        restaurantName: restaurantName || get().restaurantName || 'Restaurant Admin',
+        isConnected: connected,
         isLoading: false,
       });
 
-      return true;
+      return connected;
     } catch (err) {
-      console.error('[AdminStore] Connection error:', err);
+      console.error('[AdminStore] setConnectionConfig error:', err);
       set({ isConnected: false, isLoading: false });
       return false;
     }

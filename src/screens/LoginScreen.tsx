@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -8,32 +8,108 @@ import {
   ScrollView, 
   ActivityIndicator, 
   KeyboardAvoidingView, 
-  Platform 
+  Platform,
+  Keyboard
 } from 'react-native';
 import { useAdminStore } from '../store/useAdminStore';
-import { ChefHat, Mail, Lock, LogIn, Store, ShieldCheck, ChevronDown, ChevronUp, Server, Eye, EyeOff } from 'lucide-react-native';
+import { 
+  ChefHat, 
+  Mail, 
+  Lock, 
+  LogIn, 
+  Store, 
+  ShieldCheck, 
+  ChevronDown, 
+  ChevronUp, 
+  Server, 
+  Eye, 
+  EyeOff,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react-native';
+
+interface OutletOption {
+  id: string;
+  name: string;
+  defaultEmail: string;
+}
+
+const OUTLETS: OutletOption[] = [
+  { id: 'b20dfe0b-2fec-49b0-aa3d-5d890e7434c3', name: 'Biryani vs Pulao', defaultEmail: 'admin@biryanivspulao.com' },
+  { id: '9d8ef7d0-9655-441a-9630-629d761283c3', name: 'Spice Garden', defaultEmail: 'manager@spicegarden.com' },
+  { id: 'auto', name: 'Auto-Detect / Other', defaultEmail: '' },
+];
 
 export const LoginScreen: React.FC = () => {
   const { login, serverUrl, setConnectionConfig } = useAdminStore();
 
+  const [selectedOutlet, setSelectedOutlet] = useState<string>('b20dfe0b-2fec-49b0-aa3d-5d890e7434c3');
   const [email, setEmail] = useState('admin@biryanivspulao.com');
   const [password, setPassword] = useState('admin123');
   const [showPassword, setShowPassword] = useState(false);
   const [showServerConfig, setShowServerConfig] = useState(false);
-  const [customServerUrl, setCustomServerUrl] = useState(
-    serverUrl && !serverUrl.includes('navin.lol') ? serverUrl : 'http://100.109.147.65:4000'
-  );
-
-  React.useEffect(() => {
-    if (serverUrl && !serverUrl.includes('navin.lol')) {
-      setCustomServerUrl(serverUrl);
-    } else {
-      setCustomServerUrl('http://100.109.147.65:4000');
-    }
-  }, [serverUrl]);
+  const [customServerUrl, setCustomServerUrl] = useState(serverUrl || '');
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [serverTestStatus, setServerTestStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
+  const [serverTestMsg, setServerTestMsg] = useState<string>('');
+
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => setKeyboardHeight(e.endCoordinates.height)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardHeight(0)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (serverUrl && serverUrl.trim()) {
+      setCustomServerUrl(serverUrl.trim());
+    }
+  }, [serverUrl]);
+
+  const handleSelectOutlet = (outlet: OutletOption) => {
+    setSelectedOutlet(outlet.id);
+    if (outlet.defaultEmail) {
+      setEmail(outlet.defaultEmail);
+    }
+    setErrorMessage(null);
+  };
+
+  const handleApplyServerUrl = async () => {
+    const cleanUrl = customServerUrl.trim();
+    if (!cleanUrl) {
+      setServerTestStatus('failed');
+      setServerTestMsg('Please enter a server URL');
+      return;
+    }
+
+    setServerTestStatus('testing');
+    try {
+      const tenantToTest = selectedOutlet !== 'auto' ? selectedOutlet : '';
+      const ok = await setConnectionConfig(cleanUrl, tenantToTest);
+      if (ok) {
+        setServerTestStatus('success');
+        setServerTestMsg('Connected successfully');
+      } else {
+        setServerTestStatus('failed');
+        setServerTestMsg('Server unreachable. Please check URL');
+      }
+    } catch (err: any) {
+      setServerTestStatus('failed');
+      setServerTestMsg(err?.message || 'Connection failed');
+    }
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -45,18 +121,10 @@ export const LoginScreen: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      if (customServerUrl.trim() && customServerUrl.trim() !== serverUrl) {
-        setConnectionConfig(customServerUrl.trim(), '');
-      }
+      const activeUrl = customServerUrl.trim() || serverUrl;
+      const effectiveTenant = selectedOutlet !== 'auto' ? selectedOutlet : undefined;
 
-      let effectiveTenant: string | undefined = undefined;
-      if (email.includes('biryanivspulao')) {
-        effectiveTenant = 'b20dfe0b-2fec-49b0-aa3d-5d890e7434c3';
-      } else if (email.includes('spicegarden')) {
-        effectiveTenant = '9d8ef7d0-9655-441a-9630-629d761283c3';
-      }
-
-      const res = await login(email.trim(), password.trim(), effectiveTenant);
+      const res = await login(email.trim(), password.trim(), effectiveTenant, activeUrl);
       if (!res.success) {
         setErrorMessage(res.message || 'Invalid credentials or unauthorized restaurant outlet.');
       }
@@ -72,7 +140,14 @@ export const LoginScreen: React.FC = () => {
       style={styles.keyboardView} 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView 
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 80 : 50 }
+        ]} 
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         
         {/* ── Brand Header ── */}
         <View style={styles.header}>
@@ -91,15 +166,39 @@ export const LoginScreen: React.FC = () => {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Staff Sign In</Text>
           <Text style={styles.cardDesc}>
-            Authenticate with your restaurant staff credentials to access live kitchen orders and menu operations.
+            Select your restaurant outlet and enter your staff credentials to access orders and menu operations.
           </Text>
 
           {/* Error Banner */}
           {errorMessage && (
             <View style={styles.errorBox}>
+              <AlertCircle size={16} color="#E11D48" style={{ marginTop: 2 }} />
               <Text style={styles.errorText}>{errorMessage}</Text>
             </View>
           )}
+
+          {/* Outlet Selection */}
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>SELECT RESTAURANT OUTLET</Text>
+            <View style={styles.outletRow}>
+              {OUTLETS.map((outlet) => {
+                const isSelected = selectedOutlet === outlet.id;
+                return (
+                  <TouchableOpacity
+                    key={outlet.id}
+                    style={[styles.outletCard, isSelected && styles.outletCardSelected]}
+                    onPress={() => handleSelectOutlet(outlet)}
+                    activeOpacity={0.8}
+                  >
+                    <Store size={14} color={isSelected ? '#EA580C' : '#64748B'} />
+                    <Text style={[styles.outletName, isSelected && styles.outletNameSelected]}>
+                      {outlet.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
 
           {/* Email Field */}
           <View style={styles.field}>
@@ -171,7 +270,7 @@ export const LoginScreen: React.FC = () => {
           >
             <Server size={14} color="#64748B" />
             <Text style={styles.serverConfigToggleText}>
-              {showServerConfig ? 'Hide Server URL' : 'Configure Backend Server URL'}
+              {showServerConfig ? 'Hide Server Configuration' : 'Configure Backend Server URL'}
             </Text>
             {showServerConfig ? <ChevronUp size={14} color="#64748B" /> : <ChevronDown size={14} color="#64748B" />}
           </TouchableOpacity>
@@ -182,12 +281,41 @@ export const LoginScreen: React.FC = () => {
               <TextInput
                 style={styles.input}
                 value={customServerUrl}
-                onChangeText={setCustomServerUrl}
-                placeholder="https://vq88x6oinnilh5tsbx87swga.navin.lol"
+                onChangeText={(val) => {
+                  setCustomServerUrl(val);
+                  setServerTestStatus('idle');
+                }}
+                placeholder="https://your-api.domain.com"
                 placeholderTextColor="#94A3B8"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
+              <TouchableOpacity 
+                style={styles.applyBtn}
+                onPress={handleApplyServerUrl}
+                disabled={serverTestStatus === 'testing'}
+                activeOpacity={0.8}
+              >
+                {serverTestStatus === 'testing' ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.applyBtnText}>Apply & Test Server URL</Text>
+                )}
+              </TouchableOpacity>
+
+              {serverTestStatus === 'success' && (
+                <View style={styles.testSuccessBox}>
+                  <CheckCircle2 size={14} color="#16A34A" />
+                  <Text style={styles.testSuccessText}>{serverTestMsg}</Text>
+                </View>
+              )}
+
+              {serverTestStatus === 'failed' && (
+                <View style={styles.testFailedBox}>
+                  <AlertCircle size={14} color="#DC2626" />
+                  <Text style={styles.testFailedText}>{serverTestMsg}</Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -211,7 +339,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingTop: 40,
-    paddingBottom: 40,
     alignItems: 'center',
   },
   header: {
@@ -284,6 +411,9 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   errorBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
     backgroundColor: '#FFF1F2',
     borderWidth: 1,
     borderColor: '#FECDD3',
@@ -292,17 +422,19 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   errorText: {
+    flex: 1,
     fontSize: 12,
     color: '#E11D48',
     fontWeight: '600',
   },
-  presetRow: {
+  outletRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 10,
   },
-  presetCard: {
+  outletCard: {
     flex: 1,
+    minWidth: '47%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -314,25 +446,16 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
   },
-  presetCardActive: {
+  outletCardSelected: {
     backgroundColor: '#FFF7ED',
     borderColor: '#EA580C',
   },
-  presetCardText: {
-    fontSize: 12,
+  outletName: {
+    fontSize: 11,
     fontWeight: '700',
     color: '#64748B',
   },
-  presetCardTextActive: {
-    color: '#EA580C',
-  },
-  customTenantToggle: {
-    marginBottom: 14,
-    alignSelf: 'flex-start',
-  },
-  customTenantToggleText: {
-    fontSize: 11,
-    fontWeight: '700',
+  outletNameSelected: {
     color: '#EA580C',
   },
   field: {
@@ -377,6 +500,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#0F172A',
     fontWeight: '600',
+  },
+  applyBtn: {
+    backgroundColor: '#334155',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  applyBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  testSuccessBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F0FDF4',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  testSuccessText: {
+    fontSize: 12,
+    color: '#16A34A',
+    fontWeight: '700',
+  },
+  testFailedBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF2F2',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  testFailedText: {
+    fontSize: 12,
+    color: '#DC2626',
+    fontWeight: '700',
   },
   signInBtn: {
     backgroundColor: '#EA580C',
@@ -427,4 +590,3 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 });
-

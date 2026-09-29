@@ -116,11 +116,12 @@ class SocketService {
     this.currentUrl = serverUrl;
     this.currentTenant = tenantId;
 
+    const rootUrl = serverUrl.replace(/\/api\/v1\/?$/, '');
     console.log(
-      `[SocketService] 🔌 Connecting → ${serverUrl} (tenant: ${tenantId})`,
+      `[SocketService] 🔌 Connecting → ${rootUrl} (tenant: ${tenantId})`,
     );
 
-    this.socket = io(serverUrl, {
+    this.socket = io(rootUrl, {
       query: { tenantId },
       // Prefer WebSocket, fall back to long-polling
       transports: ['websocket', 'polling'],

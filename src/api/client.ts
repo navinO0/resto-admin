@@ -1,21 +1,22 @@
 import axios from 'axios';
 import { TableSession, MenuItem, Category, OrderStatus, AuthUser, TenantConfig, RestaurantTable } from '../types';
 
-const DEFAULT_URL = process.env.EXPO_PUBLIC_API_URL || 'http://100.109.147.65:4000';
+const DEFAULT_URL = process.env.EXPO_PUBLIC_API_URL || '';
 
-let currentServerUrl = DEFAULT_URL.endsWith('/api/v1') ? DEFAULT_URL : `${DEFAULT_URL.replace(/\/+$/, '')}/api/v1`;
+let currentServerUrl = DEFAULT_URL ? (DEFAULT_URL.endsWith('/api/v1') ? DEFAULT_URL : `${DEFAULT_URL.replace(/\/+$/, '')}/api/v1`) : '';
 // Strictly empty by default - no hardcoded default tenant!
 let currentTenantId: string = '';
 let currentAuthToken: string | null = null;
 
-export const setApiConfig = (serverUrl: string, tenantId: string) => {
-  let cleanUrl = serverUrl.trim();
+export const setApiConfig = (serverUrl: string, tenantId?: string) => {
+  let cleanUrl = (serverUrl || '').trim();
   if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
-  if (!cleanUrl.endsWith('/api/v1')) {
+  if (cleanUrl && !cleanUrl.endsWith('/api/v1')) {
     cleanUrl = `${cleanUrl}/api/v1`;
   }
   currentServerUrl = cleanUrl;
   currentTenantId = tenantId ? tenantId.trim() : '';
+  console.log(`[ApiClient] 🌐 Server URL configured: "${currentServerUrl}" (Tenant: "${currentTenantId || 'none'}")`);
 };
 
 export const setAuthToken = (token: string | null) => {
@@ -24,6 +25,7 @@ export const setAuthToken = (token: string | null) => {
 
 export const getAuthToken = () => currentAuthToken;
 export const getCurrentTenantId = () => currentTenantId;
+export const getCurrentServerUrl = () => currentServerUrl;
 
 const getAxiosInstance = () => {
   const headers: Record<string, string> = {
@@ -47,7 +49,16 @@ const getAxiosInstance = () => {
 
 export const apiService = {
   // ── AUTHENTICATION WITH CREDENTIAL-BASED TENANT RESOLUTION ──
-  async login(email: string, password: string, tenantIdentifier?: string): Promise<{ token: string; user: AuthUser }> {
+  async login(
+    email: string, 
+    password: string, 
+    tenantIdentifier?: string, 
+    overrideServerUrl?: string
+  ): Promise<{ token: string; user: AuthUser }> {
+    if (overrideServerUrl && overrideServerUrl.trim()) {
+      setApiConfig(overrideServerUrl.trim(), tenantIdentifier || '');
+    }
+
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
 
@@ -67,6 +78,7 @@ export const apiService = {
         }
       }
 
+      console.log(`[ApiClient] 📡 Attempting login to: ${currentServerUrl}/auth/login with email: ${trimmedEmail}`);
       const res = await getAxiosInstance().post('/auth/login', payload);
       return res.data;
     };
@@ -244,16 +256,31 @@ export const apiService = {
   },
 
   // ── TENANT CONFIG & PING ──
-  async testConnection(serverUrl: string, tenantId: string): Promise<TenantConfig> {
-    let cleanUrl = serverUrl.trim();
+  async testConnection(serverUrl: string, tenantId?: string): Promise<TenantConfig | any> {
+    let cleanUrl = (serverUrl || '').trim();
     if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
     if (!cleanUrl.endsWith('/api/v1')) cleanUrl = `${cleanUrl}/api/v1`;
 
-    const res = await axios.get(`${cleanUrl}/config`, {
-      headers: { 'x-tenant-id': tenantId },
-      timeout: 6000,
-    });
-    return res.data;
+    const headers: Record<string, string> = {};
+    if (tenantId && tenantId.trim()) {
+      headers['x-tenant-id'] = tenantId.trim();
+    }
+
+    try {
+      const res = await axios.get(`${cleanUrl}/config`, {
+        headers,
+        timeout: 6000,
+      });
+      return res.data;
+    } catch (err: any) {
+      const rootUrl = cleanUrl.replace(/\/api\/v1\/?$/, '');
+      try {
+        const healthRes = await axios.get(`${rootUrl}/health`, { timeout: 4000 });
+        return { name: 'Restaurant Server', operations: { currency: '₹' }, health: healthRes.data };
+      } catch (healthErr) {
+        throw err;
+      }
+    }
   },
 
   async getTables(): Promise<RestaurantTable[]> {

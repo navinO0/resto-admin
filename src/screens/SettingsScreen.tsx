@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Switch } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TextInput, 
+  TouchableOpacity, 
+  ScrollView, 
+  Alert, 
+  ActivityIndicator, 
+  Switch,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard
+} from 'react-native';
 import { useAdminStore } from '../store/useAdminStore';
 import { alarmService } from '../services/alarmService';
 import { backgroundAlertService } from '../services/backgroundAlertService';
@@ -59,6 +72,22 @@ export const SettingsScreen: React.FC = () => {
   const [loginPass, setLoginPass] = useState('admin123');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isBatteryOptIgnored, setIsBatteryOptIgnored] = useState<boolean>(true);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => setKeyboardHeight(e.endCoordinates.height)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardHeight(0)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     backgroundAlertService.isBatteryOptimizationIgnored().then(setIsBatteryOptIgnored);
@@ -129,8 +158,8 @@ export const SettingsScreen: React.FC = () => {
   };
 
   const handleSaveConnection = async () => {
-    if (!url.trim() || !tenant.trim()) {
-      Alert.alert('Missing Info', 'Please enter backend URL and Tenant ID');
+    if (!url.trim()) {
+      Alert.alert('Missing Info', 'Please enter backend host / URL');
       return;
     }
 
@@ -139,9 +168,9 @@ export const SettingsScreen: React.FC = () => {
     setIsTesting(false);
 
     if (success) {
-      Alert.alert('Connected!', 'Successfully connected to restaurant backend.');
+      Alert.alert('Connected!', 'Backend host and configuration saved.');
     } else {
-      Alert.alert('Connection Failed', 'Could not connect. Verify server is running and URL is reachable.');
+      Alert.alert('Notice', 'URL saved, but server health check failed. Verify server is online.');
     }
   };
 
@@ -199,8 +228,20 @@ export const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={[styles.statusCard, isConnected ? styles.connectedBg : styles.disconnectedBg]}>
+    <KeyboardAvoidingView 
+      style={{ flex: 1, backgroundColor: '#F8FAFC' }} 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 120 : 60 }
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.statusCard, isConnected ? styles.connectedBg : styles.disconnectedBg]}>
         <View style={styles.statusRow}>
           <View style={[styles.statusDot, isConnected ? styles.connectedDot : styles.disconnectedDot]} />
           <Text style={styles.statusTitle}>
@@ -415,11 +456,9 @@ export const SettingsScreen: React.FC = () => {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeader}>CUSTOMER WEB APP & TABLE QRS (SAAS)</Text>
         <Text style={styles.sectionHeader}>CUSTOMER WEB APP URL (SAAS)</Text>
         <View style={styles.box}>
           <Text style={styles.boxDesc}>
-            Base URL for the customer web ordering portal. All table QR codes encode this URL so diners scan and view this restaurant's menu.
             Base URL for the customer web ordering portal. Existing physical table QR codes remain preserved.
           </Text>
 
@@ -446,8 +485,6 @@ export const SettingsScreen: React.FC = () => {
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
               <>
-                <QrCode size={16} color="#FFFFFF" />
-                <Text style={styles.saveBtnText}>Save & Regenerate Table QRs</Text>
                 <Globe size={16} color="#FFFFFF" />
                 <Text style={styles.saveBtnText}>Save Web App URL</Text>
               </>
@@ -575,6 +612,7 @@ export const SettingsScreen: React.FC = () => {
         </View>
       </View>
     </ScrollView>
+  </KeyboardAvoidingView>
   );
 };
 
