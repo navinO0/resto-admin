@@ -14,6 +14,7 @@ import {
   Keyboard
 } from 'react-native';
 import { useAdminStore } from '../store/useAdminStore';
+import { storage } from '../utils/storage';
 import { alarmService } from '../services/alarmService';
 import { backgroundAlertService } from '../services/backgroundAlertService';
 import { 
@@ -68,11 +69,19 @@ export const SettingsScreen: React.FC = () => {
   const [newPincode, setNewPincode] = useState('');
   const [isUpdatingPincodes, setIsUpdatingPincodes] = useState(false);
 
-  const [loginEmail, setLoginEmail] = useState('admin@biryanivspulao.com');
-  const [loginPass, setLoginPass] = useState('admin123');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPass, setLoginPass] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isBatteryOptIgnored, setIsBatteryOptIgnored] = useState<boolean>(true);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    storage.getItem('saved_staff_email').then((savedEmail) => {
+      if (savedEmail && savedEmail.trim()) {
+        setLoginEmail(savedEmail.trim());
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(
@@ -195,7 +204,7 @@ export const SettingsScreen: React.FC = () => {
     }
 
     setIsLoggingIn(true);
-    const res = await login(loginEmail.trim(), loginPass.trim(), tenant.trim());
+    const res = await login(loginEmail.trim(), loginPass.trim(), tenant.trim() || undefined);
     setIsLoggingIn(false);
 
     if (res.success) {
@@ -203,28 +212,6 @@ export const SettingsScreen: React.FC = () => {
     } else {
       Alert.alert('Login Failed', res.message || 'Invalid credentials');
     }
-  };
-
-  const selectPreset = (presetTenant: string, name: string) => {
-    if (isAuthenticated) {
-      Alert.alert(
-        'Switch Restaurant',
-        `To switch to ${name}, you must sign out of your current session. Continue?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Sign Out & Switch', 
-            style: 'destructive',
-            onPress: async () => {
-              await logout();
-            }
-          }
-        ]
-      );
-      return;
-    }
-    setTenant(presetTenant);
-    setConnectionConfig(url, presetTenant, name);
   };
 
   return (
@@ -340,7 +327,7 @@ export const SettingsScreen: React.FC = () => {
                   style={styles.input}
                   value={loginEmail}
                   onChangeText={setLoginEmail}
-                  placeholder="admin@biryanivspulao.com"
+                  placeholder="staff@restaurant.com"
                   placeholderTextColor="#94A3B8"
                   autoCapitalize="none"
                   keyboardType="email-address"
@@ -456,19 +443,19 @@ export const SettingsScreen: React.FC = () => {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeader}>CUSTOMER WEB APP URL (SAAS)</Text>
+        <Text style={styles.sectionHeader}>CUSTOMER ORDERING WEBSITE</Text>
         <View style={styles.box}>
           <Text style={styles.boxDesc}>
-            Base URL for the customer web ordering portal. Existing physical table QR codes remain preserved.
+            Base web address for customer online orders and table menu QR codes. Existing physical table QR codes remain preserved.
           </Text>
 
           <View style={styles.field}>
-            <Text style={styles.label}>CUSTOMER WEB APP URL</Text>
+            <Text style={styles.label}>ORDERING WEBSITE URL</Text>
             <TextInput
               style={styles.input}
               value={customFrontendUrl}
               onChangeText={setCustomFrontendUrl}
-              placeholder="https://biryanivspulao.com or http://100.109.147.65:3000"
+              placeholder="https://order.your-restaurant.com"
               placeholderTextColor="#94A3B8"
               autoCapitalize="none"
               autoCorrect={false}
@@ -486,7 +473,7 @@ export const SettingsScreen: React.FC = () => {
             ) : (
               <>
                 <Globe size={16} color="#FFFFFF" />
-                <Text style={styles.saveBtnText}>Save Web App URL</Text>
+                <Text style={styles.saveBtnText}>Save Website URL</Text>
               </>
             )}
           </TouchableOpacity>
@@ -566,15 +553,15 @@ export const SettingsScreen: React.FC = () => {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeader}>SERVER CONNECTION & TENANT</Text>
+        <Text style={styles.sectionHeader}>SERVER & OUTLET CONNECTION</Text>
         <View style={styles.box}>
           <View style={styles.field}>
-            <Text style={styles.label}>BACKEND HOST / URL</Text>
+            <Text style={styles.label}>SERVER ADDRESS</Text>
             <TextInput
               style={styles.input}
               value={url}
               onChangeText={setUrl}
-              placeholder="https://vq88x6oinnilh5tsbx87swga.navin.lol"
+              placeholder="https://your-api.domain.com"
               placeholderTextColor="#94A3B8"
               autoCapitalize="none"
               autoCorrect={false}
@@ -582,12 +569,12 @@ export const SettingsScreen: React.FC = () => {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>TENANT ID</Text>
+            <Text style={styles.label}>OUTLET IDENTIFIER (OPTIONAL)</Text>
             <TextInput
               style={styles.input}
               value={tenant}
               onChangeText={setTenant}
-              placeholder="b20dfe0b-2fec-49b0-aa3d-5d890e7434c3"
+              placeholder="Auto-detected on staff sign in"
               placeholderTextColor="#94A3B8"
               autoCapitalize="none"
               autoCorrect={false}
@@ -605,7 +592,7 @@ export const SettingsScreen: React.FC = () => {
             ) : (
               <>
                 <Wifi size={16} color="#FFFFFF" />
-                <Text style={styles.saveBtnText}>Connect & Save Config</Text>
+                <Text style={styles.saveBtnText}>Save Connection</Text>
               </>
             )}
           </TouchableOpacity>

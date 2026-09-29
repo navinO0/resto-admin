@@ -202,6 +202,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       await storage.setItem('auth_token', token);
       await storage.setItem('auth_user', JSON.stringify(user));
       await storage.setItem('tenant_id', verifiedTenantId);
+      await storage.setItem('saved_staff_email', email.trim());
 
       // Set tenant-isolated API client & headers
       setApiConfig(activeUrl, verifiedTenantId);

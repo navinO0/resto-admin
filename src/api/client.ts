@@ -84,6 +84,7 @@ export const apiService = {
     };
 
     // 1. If tenantIdentifier is explicitly provided by user/preset, use it
+    // 1. If tenantIdentifier is explicitly provided by user, use it
     if (tenantIdentifier && tenantIdentifier.trim()) {
       const data = await attemptLogin(tenantIdentifier);
       const { token, user } = data;
@@ -122,6 +123,13 @@ export const apiService = {
     }
 
     throw lastError || new Error('Invalid credentials or unauthorized restaurant outlet.');
+    // 2. Direct login - backend automatically resolves restaurant from staff credentials
+    const data = await attemptLogin();
+    const { token, user } = data;
+    setAuthToken(token);
+    setApiConfig(currentServerUrl, user.tenantId);
+    console.log(`[ApiClient] 🎯 Successfully authenticated & resolved Restaurant: ${user.tenantId} for ${user.email}`);
+    return { token, user };
   },
 
   async getMe(): Promise<AuthUser> {

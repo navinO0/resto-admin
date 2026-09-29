@@ -12,12 +12,12 @@ import {
   Keyboard
 } from 'react-native';
 import { useAdminStore } from '../store/useAdminStore';
+import { storage } from '../utils/storage';
 import { 
   ChefHat, 
   Mail, 
   Lock, 
   LogIn, 
-  Store, 
   ShieldCheck, 
   ChevronDown, 
   ChevronUp, 
@@ -28,24 +28,11 @@ import {
   AlertCircle
 } from 'lucide-react-native';
 
-interface OutletOption {
-  id: string;
-  name: string;
-  defaultEmail: string;
-}
-
-const OUTLETS: OutletOption[] = [
-  { id: 'b20dfe0b-2fec-49b0-aa3d-5d890e7434c3', name: 'Biryani vs Pulao', defaultEmail: 'admin@biryanivspulao.com' },
-  { id: '9d8ef7d0-9655-441a-9630-629d761283c3', name: 'Spice Garden', defaultEmail: 'manager@spicegarden.com' },
-  { id: 'auto', name: 'Auto-Detect / Other', defaultEmail: '' },
-];
-
 export const LoginScreen: React.FC = () => {
   const { login, serverUrl, setConnectionConfig } = useAdminStore();
 
-  const [selectedOutlet, setSelectedOutlet] = useState<string>('b20dfe0b-2fec-49b0-aa3d-5d890e7434c3');
-  const [email, setEmail] = useState('admin@biryanivspulao.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showServerConfig, setShowServerConfig] = useState(false);
   const [customServerUrl, setCustomServerUrl] = useState(serverUrl || '');
@@ -72,32 +59,32 @@ export const LoginScreen: React.FC = () => {
     };
   }, []);
 
+  // Autofill previously saved staff email
+  useEffect(() => {
+    storage.getItem('saved_staff_email').then((savedEmail) => {
+      if (savedEmail && savedEmail.trim()) {
+        setEmail(savedEmail.trim());
+      }
+    });
+  }, []);
+
   useEffect(() => {
     if (serverUrl && serverUrl.trim()) {
       setCustomServerUrl(serverUrl.trim());
     }
   }, [serverUrl]);
 
-  const handleSelectOutlet = (outlet: OutletOption) => {
-    setSelectedOutlet(outlet.id);
-    if (outlet.defaultEmail) {
-      setEmail(outlet.defaultEmail);
-    }
-    setErrorMessage(null);
-  };
-
   const handleApplyServerUrl = async () => {
     const cleanUrl = customServerUrl.trim();
     if (!cleanUrl) {
       setServerTestStatus('failed');
-      setServerTestMsg('Please enter a server URL');
+      setServerTestMsg('Please enter a server address');
       return;
     }
 
     setServerTestStatus('testing');
     try {
-      const tenantToTest = selectedOutlet !== 'auto' ? selectedOutlet : '';
-      const ok = await setConnectionConfig(cleanUrl, tenantToTest);
+      const ok = await setConnectionConfig(cleanUrl, '');
       if (ok) {
         setServerTestStatus('success');
         setServerTestMsg('Connected successfully');
@@ -122,14 +109,12 @@ export const LoginScreen: React.FC = () => {
 
     try {
       const activeUrl = customServerUrl.trim() || serverUrl;
-      const effectiveTenant = selectedOutlet !== 'auto' ? selectedOutlet : undefined;
-
-      const res = await login(email.trim(), password.trim(), effectiveTenant, activeUrl);
+      const res = await login(email.trim(), password.trim(), undefined, activeUrl);
       if (!res.success) {
-        setErrorMessage(res.message || 'Invalid credentials or unauthorized restaurant outlet.');
+        setErrorMessage(res.message || 'Invalid email or password. Please check your credentials.');
       }
     } catch (err: any) {
-      setErrorMessage(err?.message || 'Login failed. Please check your connection.');
+      setErrorMessage(err?.message || 'Login failed. Please check your server connection.');
     } finally {
       setIsLoading(false);
     }
@@ -149,7 +134,7 @@ export const LoginScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
       >
         
-        {/* ── Brand Header ── */}
+        {/* Brand Header */}
         <View style={styles.header}>
           <View style={styles.logoBadge}>
             <ChefHat size={36} color="#FFFFFF" />
@@ -158,15 +143,15 @@ export const LoginScreen: React.FC = () => {
           <Text style={styles.appSubtitle}>Live Kitchen & POS Terminal</Text>
           <View style={styles.isolationBadge}>
             <ShieldCheck size={12} color="#15803D" />
-            <Text style={styles.isolationText}>STRICT TENANT ISOLATION ACTIVE</Text>
+            <Text style={styles.isolationText}>RESTAURANT STAFF TERMINAL</Text>
           </View>
         </View>
 
-        {/* ── Login Form Card ── */}
+        {/* Login Form Card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Staff Sign In</Text>
           <Text style={styles.cardDesc}>
-            Select your restaurant outlet and enter your staff credentials to access orders and menu operations.
+            Enter your restaurant staff credentials to access live orders, kitchen tickets, and menu management.
           </Text>
 
           {/* Error Banner */}
@@ -177,29 +162,6 @@ export const LoginScreen: React.FC = () => {
             </View>
           )}
 
-          {/* Outlet Selection */}
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>SELECT RESTAURANT OUTLET</Text>
-            <View style={styles.outletRow}>
-              {OUTLETS.map((outlet) => {
-                const isSelected = selectedOutlet === outlet.id;
-                return (
-                  <TouchableOpacity
-                    key={outlet.id}
-                    style={[styles.outletCard, isSelected && styles.outletCardSelected]}
-                    onPress={() => handleSelectOutlet(outlet)}
-                    activeOpacity={0.8}
-                  >
-                    <Store size={14} color={isSelected ? '#EA580C' : '#64748B'} />
-                    <Text style={[styles.outletName, isSelected && styles.outletNameSelected]}>
-                      {outlet.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
           {/* Email Field */}
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>STAFF EMAIL ADDRESS</Text>
@@ -209,7 +171,7 @@ export const LoginScreen: React.FC = () => {
                 style={styles.inputInner}
                 value={email}
                 onChangeText={setEmail}
-                placeholder="admin@restaurant.com"
+                placeholder="staff@restaurant.com"
                 placeholderTextColor="#94A3B8"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -258,7 +220,7 @@ export const LoginScreen: React.FC = () => {
             ) : (
               <>
                 <LogIn size={18} color="#FFFFFF" />
-                <Text style={styles.signInBtnText}>SIGN IN TO RESTAURANT</Text>
+                <Text style={styles.signInBtnText}>SIGN IN</Text>
               </>
             )}
           </TouchableOpacity>
@@ -270,14 +232,14 @@ export const LoginScreen: React.FC = () => {
           >
             <Server size={14} color="#64748B" />
             <Text style={styles.serverConfigToggleText}>
-              {showServerConfig ? 'Hide Server Configuration' : 'Configure Backend Server URL'}
+              {showServerConfig ? 'Hide Server Configuration' : 'Server Setup (Optional)'}
             </Text>
             {showServerConfig ? <ChevronUp size={14} color="#64748B" /> : <ChevronDown size={14} color="#64748B" />}
           </TouchableOpacity>
 
           {showServerConfig && (
             <View style={styles.serverBox}>
-              <Text style={styles.fieldLabel}>FASTIFY BACKEND API URL</Text>
+              <Text style={styles.fieldLabel}>SERVER ADDRESS</Text>
               <TextInput
                 style={styles.input}
                 value={customServerUrl}
@@ -299,7 +261,7 @@ export const LoginScreen: React.FC = () => {
                 {serverTestStatus === 'testing' ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.applyBtnText}>Apply & Test Server URL</Text>
+                  <Text style={styles.applyBtnText}>Connect & Verify Server</Text>
                 )}
               </TouchableOpacity>
 
@@ -323,7 +285,7 @@ export const LoginScreen: React.FC = () => {
 
         {/* Footer Note */}
         <Text style={styles.footerNote}>
-          Data Isolation Guarantee: All live orders, billing records, and stock status are strictly scoped to your authenticated restaurant outlet.
+          Secure Restaurant Terminal • Connected to your kitchen and live orders.
         </Text>
 
       </ScrollView>
@@ -426,37 +388,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#E11D48',
     fontWeight: '600',
-  },
-  outletRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  outletCard: {
-    flex: 1,
-    minWidth: '47%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-  },
-  outletCardSelected: {
-    backgroundColor: '#FFF7ED',
-    borderColor: '#EA580C',
-  },
-  outletName: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  outletNameSelected: {
-    color: '#EA580C',
   },
   field: {
     marginBottom: 14,
