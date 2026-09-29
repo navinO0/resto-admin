@@ -20,6 +20,14 @@ interface OrderCardProps {
   session: TableSession;
 }
 
+const formatDateTime = (ts?: number | string | Date) => {
+  if (!ts) return '';
+  const num = typeof ts === 'string' && /^\d+$/.test(ts) ? parseInt(ts, 10) : ts;
+  const d = new Date(num);
+  if (isNaN(d.getTime())) return '';
+  return `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+};
+
 export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -172,7 +180,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
             </View>
             <View style={styles.metaRow}>
               <Text style={styles.metaTime}>
-                {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {formatDateTime(session.startTime)}
               </Text>
               <Text style={styles.dot}>•</Text>
               <Text style={styles.metaItems}>{totalItems} items</Text>
@@ -256,7 +264,12 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
         {allOrders.map((order, orderIdx) => (
           <View key={order.id || orderIdx} style={styles.orderBox}>
             <View style={styles.orderTop}>
-              <Text style={styles.orderId}>Order #{order.id?.slice(-4) || orderIdx + 1}</Text>
+              <View style={styles.orderHeaderLeft}>
+                <Text style={styles.orderId}>Order #{order.id?.slice(-4) || orderIdx + 1}</Text>
+                {order.timestamp ? (
+                  <Text style={styles.orderTime}>• {formatDateTime(order.timestamp)}</Text>
+                ) : null}
+              </View>
               <View style={[styles.statusChip, getStatusStyle(order.status)]}>
                 <Text style={styles.statusChipText}>{order.status?.toUpperCase()}</Text>
               </View>
@@ -487,6 +500,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginTop: 3,
+    flexWrap: 'wrap',
   },
   metaTime: {
     fontSize: 12,
@@ -641,10 +655,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 6,
   },
+  orderHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+    flex: 1,
+  },
   orderId: {
     fontSize: 12,
     fontWeight: '700',
     color: '#64748B',
+  },
+  orderTime: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '500',
   },
   statusChip: {
     paddingHorizontal: 8,

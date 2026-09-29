@@ -63,7 +63,7 @@ interface AdminState {
   updateAcceptedPincodes: (pincodes: string[]) => Promise<boolean>;
 }
 
-const DEFAULT_SERVER_URL = process.env.EXPO_PUBLIC_API_URL || '';
+const DEFAULT_SERVER_URL = process.env.EXPO_PUBLIC_API_URL || 'https://vq88x6oinnilh5tsbx87swga.navin.lol';
 
 export const useAdminStore = create<AdminState>((set, get) => ({
   serverUrl: DEFAULT_SERVER_URL,
