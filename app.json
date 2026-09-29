@@ -2,6 +2,8 @@
   "expo": {
     "name": "restaurant-admin-mobile",
     "slug": "restaurant-admin-mobile",
+    "name": "Kitchen Admin",
+    "slug": "kitchen-admin",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -9,13 +11,24 @@
     "ios": {
       "supportsTablet": true
     },
+    "newArchEnabled": false,
     "android": {
+      "package": "com.restaurant.admin",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#EA580C",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "permissions": [
+        "VIBRATE",
+        "WAKE_LOCK",
+        "USE_FULL_SCREEN_INTENT",
+        "POST_NOTIFICATIONS",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ],
       "predictiveBackGestureEnabled": false
     },
     "web": {

@@ -1,0 +1,332 @@
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, ScrollView } from 'react-native';
+import { useAdminStore } from '../store/useAdminStore';
+import { Bell, ShoppingBag, Utensils, CheckCircle, XCircle, VolumeX } from 'lucide-react-native';
+
+export const IncomingOrderModal: React.FC = () => {
+  const { 
+    incomingAlert, 
+    dismissIncomingAlert, 
+    acceptOrder, 
+    declineOrder, 
+    currency 
+  } = useAdminStore();
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (incomingAlert) {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.08, duration: 400, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+        ])
+      );
+      loop.start();
+      return () => loop.stop();
+    }
+  }, [incomingAlert]);
+
+  if (!incomingAlert) return null;
+
+  const isTakeaway = incomingAlert.orderType === 'takeaway';
+  const customerName = incomingAlert.customerNames?.[0] || (isTakeaway ? 'Takeaway Customer' : `Table ${incomingAlert.tableNumber}`);
+  const allOrders = incomingAlert.orders || [];
+  const allItems = allOrders.flatMap((o) => o.items || []);
+
+  const handleAccept = () => {
+    acceptOrder(incomingAlert.id);
+  };
+
+  const handleDecline = () => {
+    declineOrder(incomingAlert.id);
+  };
+
+  return (
+    <Modal visible={true} transparent animationType="slide">
+      <View style={styles.overlay}>
+        <View style={styles.card}>
+          
+          <View style={styles.header}>
+            <Animated.View style={[styles.iconContainer, { transform: [{ scale: pulseAnim }] }]}>
+              <Bell size={28} color="#FFFFFF" />
+            </Animated.View>
+            <View style={styles.headerText}>
+              <Text style={styles.alertTag}>
+                {incomingAlert.needsAttention
+                  ? 'GUEST ASSISTANCE CALL'
+                  : isTakeaway
+                  ? 'INCOMING TAKEAWAY ORDER'
+                  : 'NEW DINE-IN ORDER'}
+              </Text>
+              <Text style={styles.title}>{customerName}</Text>
+            </View>
+          </View>
+
+          <View style={styles.infoBanner}>
+            <View style={styles.infoCol}>
+              <Text style={styles.infoLabel}>ORDER TYPE</Text>
+              <Text style={styles.infoValue}>
+                {isTakeaway ? 'Takeaway / Delivery' : `Table ${incomingAlert.tableNumber}`}
+              </Text>
+            </View>
+            <View style={styles.infoCol}>
+              <Text style={styles.infoLabel}>TOTAL AMOUNT</Text>
+              <Text style={styles.priceValue}>{currency}{incomingAlert.totalAmount}</Text>
+            </View>
+          </View>
+
+          {incomingAlert.needsAttention && incomingAlert.attentionNote ? (
+            <View style={styles.attentionBox}>
+              <Text style={styles.attentionText}>Note: {incomingAlert.attentionNote}</Text>
+            </View>
+          ) : null}
+
+          <Text style={styles.itemsHeader}>Order Items ({allItems.length}):</Text>
+          <ScrollView style={styles.itemsList} showsVerticalScrollIndicator={false}>
+            {allItems.map((item, idx) => (
+              <View key={item.id || idx} style={styles.itemRow}>
+                <View style={styles.qtyBadge}>
+                  <Text style={styles.qtyText}>{item.quantity}x</Text>
+                </View>
+                <View style={styles.itemInfo}>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  {item.instructions ? (
+                    <Text style={styles.itemNote}>Note: {item.instructions}</Text>
+                  ) : null}
+                </View>
+                <Text style={styles.itemPrice}>{currency}{item.price * item.quantity}</Text>
+              </View>
+            ))}
+          </ScrollView>
+
+          <View style={styles.actions}>
+            <TouchableOpacity style={styles.acceptButton} onPress={handleAccept} activeOpacity={0.85}>
+              <CheckCircle size={22} color="#FFFFFF" />
+              <Text style={styles.acceptText}>
+                {isTakeaway ? 'ACCEPT TAKEAWAY' : 'ACCEPT TO KITCHEN'}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.secondaryRow}>
+              <TouchableOpacity style={styles.declineButton} onPress={handleDecline} activeOpacity={0.85}>
+                <XCircle size={18} color="#E11D48" />
+                <Text style={styles.declineText}>Decline</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.silenceButton} onPress={dismissIncomingAlert} activeOpacity={0.85}>
+                <VolumeX size={18} color="#475569" />
+                <Text style={styles.silenceText}>Silence</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(2, 6, 23, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 440,
+    maxHeight: '85%',
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  iconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#EA580C',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  headerText: {
+    flex: 1,
+  },
+  alertTag: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#EA580C',
+    letterSpacing: 1,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 2,
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  infoCol: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginTop: 2,
+  },
+  priceValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#10B981',
+    marginTop: 2,
+  },
+  attentionBox: {
+    backgroundColor: '#FEF3C7',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  attentionText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  itemsHeader: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#64748B',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  itemsList: {
+    maxHeight: 180,
+    marginBottom: 16,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  qtyBadge: {
+    backgroundColor: '#FFF7ED',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+    marginRight: 10,
+  },
+  qtyText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#EA580C',
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  itemNote: {
+    fontSize: 11,
+    color: '#EA580C',
+    fontStyle: 'italic',
+    marginTop: 1,
+  },
+  itemPrice: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  actions: {
+    gap: 10,
+  },
+  acceptButton: {
+    backgroundColor: '#10B981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  acceptText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  secondaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  declineButton: {
+    flex: 1,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 6,
+  },
+  declineText: {
+    color: '#E11D48',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  silenceButton: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 6,
+  },
+  silenceText: {
+    color: '#475569',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+});
