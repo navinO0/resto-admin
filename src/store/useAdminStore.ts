@@ -3,7 +3,54 @@ import { TableSession, MenuItem, Category, OrderStatus, AuthUser, RestaurantTabl
 import { apiService, setApiConfig, setAuthToken, getAuthToken } from '../api/client';
 import { alarmService } from '../services/alarmService';
 import { socketService } from '../services/socketService';
+import { backgroundAlertService } from '../services/backgroundAlertService';
 import { storage } from '../utils/storage';
+
+export function getNotificationId(sessionId: string): number {
+  let hash = 0;
+  const str = sessionId || 'default';
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash % 2147483647) || 1001;
+}
+
+export function buildNotificationContent(session: TableSession, currency: string = '₹'): { title: string; message: string; notifId: number } {
+  const isTakeaway = session.orderType === 'takeaway';
+  const customerName = session.customerNames?.[0] || '';
+
+  let title = '';
+  if (session.needsAttention) {
+    title = isTakeaway
+      ? `🔔 Takeaway Alert - ${customerName || 'Customer'}`
+      : `🔔 Call Waiter - Table ${session.tableNumber}`;
+  } else if (isTakeaway) {
+    title = `🛍️ New Takeaway - ${customerName || 'Customer'}`;
+  } else {
+    title = `🍽️ New Order - Table ${session.tableNumber}`;
+  }
+
+  const allItems = (session.orders || []).flatMap((o) => o.items || []);
+  let message = '';
+  if (session.needsAttention && session.attentionNote) {
+    message = `Note: ${session.attentionNote}`;
+  } else if (allItems.length > 0) {
+    const itemSummary = allItems
+      .slice(0, 3)
+      .map((i) => `${i.quantity}x ${i.name}`)
+      .join(', ');
+    const moreCount = allItems.length - 3;
+    const moreText = moreCount > 0 ? ` +${moreCount} more` : '';
+    const totalText = session.totalAmount ? ` • ${currency}${session.totalAmount}` : '';
+    message = `${itemSummary}${moreText}${totalText}`;
+  } else {
+    message = session.totalAmount ? `Total: ${currency}${session.totalAmount}` : 'New order received. Tap to view.';
+  }
+
+  const notifId = getNotificationId(session.id);
+  return { title, message, notifId };
+}
 
 interface AdminState {
   // Config & Auth
@@ -372,6 +419,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   },
 
   acceptOrder: async (sessionId, orderId) => {
+    backgroundAlertService.cancelNotification(getNotificationId(sessionId));
     get().dismissIncomingAlert();
     try {
       await apiService.acceptOrder(sessionId, orderId);
@@ -382,6 +430,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   },
 
   declineOrder: async (sessionId, orderId) => {
+    backgroundAlertService.cancelNotification(getNotificationId(sessionId));
     get().dismissIncomingAlert();
     try {
       await apiService.declineOrder(sessionId, orderId);
@@ -481,9 +530,18 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     console.log('[AdminStore] 🔔 TRIGGERING ORDER ALARM FOR:', session.id);
     set({ incomingAlert: session });
     alarmService.startAlert();
+
+    // Show system notification with sound & vibration
+    const currency = get().currency || '₹';
+    const { title, message, notifId } = buildNotificationContent(session, currency);
+    backgroundAlertService.showOrderNotification(notifId, title, message, session.id);
   },
 
   dismissIncomingAlert: () => {
+    const currentAlert = get().incomingAlert;
+    if (currentAlert) {
+      backgroundAlertService.cancelNotification(getNotificationId(currentAlert.id));
+    }
     set({ incomingAlert: null });
     alarmService.stopAlert();
   },

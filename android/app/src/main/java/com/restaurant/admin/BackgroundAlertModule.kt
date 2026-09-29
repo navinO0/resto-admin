@@ -2,21 +2,136 @@ package com.restaurant.admin
 
 import android.app.Activity
 import android.app.KeyguardManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
+import androidx.core.app.NotificationCompat
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class BackgroundAlertModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
+    init {
+        instance = this
+    }
+
     override fun getName(): String = "BackgroundAlertModule"
+
+    companion object {
+        var lastClickedSessionId: String? = null
+        var instance: BackgroundAlertModule? = null
+
+        fun handleIntent(intent: Intent) {
+            val sessionId = intent.getStringExtra("sessionId")
+            if (!sessionId.isNullOrEmpty()) {
+                lastClickedSessionId = sessionId
+                instance?.emitOpenOrderEvent(sessionId)
+            }
+        }
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channelId = "orders_channel"
+            val channelName = "New Orders & Alerts"
+            val importance = NotificationManager.IMPORTANCE_HIGH
+            val channel = NotificationChannel(channelId, channelName, importance).apply {
+                description = "Alerts for incoming restaurant orders and customer calls"
+                enableLights(true)
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 500, 250, 500)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+            }
+            val notificationManager = reactContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    fun emitOpenOrderEvent(sessionId: String) {
+        try {
+            if (reactContext.hasActiveReactInstance()) {
+                val params = Arguments.createMap().apply {
+                    putString("sessionId", sessionId)
+                }
+                reactContext
+                    .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                    .emit("onNotificationOpenOrder", params)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    @ReactMethod
+    fun getInitialSessionId(promise: Promise) {
+        val s = lastClickedSessionId
+        lastClickedSessionId = null
+        promise.resolve(s)
+    }
+
+    @ReactMethod
+    fun showOrderNotification(id: Double, title: String, message: String, sessionId: String) {
+        try {
+            createNotificationChannel()
+
+            val intent = Intent(reactContext, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("sessionId", sessionId)
+                putExtra("action", "OPEN_ORDER")
+            }
+
+            val flag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            } else {
+                PendingIntent.FLAG_UPDATE_CURRENT
+            }
+
+            val pendingIntent = PendingIntent.getActivity(
+                reactContext,
+                id.toInt(),
+                intent,
+                flag
+            )
+
+            val builder = NotificationCompat.Builder(reactContext, "orders_channel")
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_CALL)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+            val notificationManager = reactContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.notify(id.toInt(), builder.build())
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    @ReactMethod
+    fun cancelNotification(id: Double) {
+        try {
+            val notificationManager = reactContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.cancel(id.toInt())
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 
     @ReactMethod
     fun wakeUpScreen() {

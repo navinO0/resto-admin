@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ActivityIndicator,
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useAdminStore } from './src/store/useAdminStore';
 import { socketService } from './src/services/socketService';
+import { backgroundAlertService } from './src/services/backgroundAlertService';
+import { alarmService } from './src/services/alarmService';
 import { LiveOrdersScreen } from './src/screens/LiveOrdersScreen';
 import { MenuScreen } from './src/screens/MenuScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
@@ -29,8 +31,43 @@ export default function App() {
     isAuthenticated
   } = useAdminStore();
 
+  const handleOpenOrder = async (sessionId: string) => {
+    console.log('[App] 🛎️ Handling open order from notification:', sessionId);
+    alarmService.stopAlert();
+    setActiveTab('orders');
+
+    let session = useAdminStore.getState().activeSessions.find((s) => s.id === sessionId);
+    if (!session) {
+      await useAdminStore.getState().fetchSessions();
+      session = useAdminStore.getState().activeSessions.find((s) => s.id === sessionId);
+    }
+
+    if (session) {
+      useAdminStore.setState({ incomingAlert: session });
+    }
+  };
+
   useEffect(() => {
     initAuthAndSync();
+    initAuthAndSync().then(async () => {
+      // Check if app was cold-started from a notification tap
+      const initialSessionId = await backgroundAlertService.getInitialSessionId();
+      if (initialSessionId) {
+        handleOpenOrder(initialSessionId);
+      }
+    });
+
+    // Request notification permission for Android 13+
+    backgroundAlertService.requestNotificationPermission();
+
+    // Listen for notification clicks when app is in background or foreground
+    const unsubscribeNotif = backgroundAlertService.onNotificationOpenOrder((sessionId) => {
+      handleOpenOrder(sessionId);
+    });
+
+    return () => {
+      unsubscribeNotif();
+    };
   }, []);
 
   // Refresh data when app returns to foreground
@@ -43,6 +80,12 @@ export default function App() {
           fetchMenu();
           fetchTables();
         }
+        // Also check if an intent brought us back
+        backgroundAlertService.getInitialSessionId().then((sessionId) => {
+          if (sessionId) {
+            handleOpenOrder(sessionId);
+          }
+        });
       }
       appStateRef.current = nextState;
     });

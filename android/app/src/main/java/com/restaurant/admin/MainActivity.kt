@@ -1,5 +1,6 @@
 package com.restaurant.admin
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 
@@ -14,8 +15,7 @@ class MainActivity : ReactActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     // Set the theme to AppTheme BEFORE onCreate to support
     // coloring the background, status bar, and navigation bar.
-    // This is required for expo-splash-screen.
-    setTheme(R.style.AppTheme);
+    setTheme(R.style.AppTheme)
     super.onCreate(null)
 
     // Allow alerts to be seen immediately even when the device is locked
@@ -31,6 +31,14 @@ class MainActivity : ReactActivity() {
         android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
       )
     }
+
+    intent?.let { BackgroundAlertModule.handleIntent(it) }
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+    BackgroundAlertModule.handleIntent(intent)
   }
 
   /**
@@ -63,6 +71,7 @@ class MainActivity : ReactActivity() {
       if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
           if (!moveTaskToBack(false)) {
               // For non-root activities, use the default implementation to finish them.
+              // For non-root activities, use the default implementation.
               super.invokeDefaultOnBackPressed()
           }
           return

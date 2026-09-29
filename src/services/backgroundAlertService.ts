@@ -1,4 +1,4 @@
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules, Platform, DeviceEventEmitter, PermissionsAndroid } from 'react-native';
 
 const { BackgroundAlertModule } = NativeModules;
 
@@ -15,6 +15,80 @@ class BackgroundAlertService {
         console.warn('[BackgroundAlertService] Failed to wake screen:', err);
       }
     }
+  }
+
+  /**
+   * Shows a high-priority system notification with sound and vibration.
+   */
+  showOrderNotification(id: number, title: string, message: string, sessionId: string) {
+    if (Platform.OS === 'android' && BackgroundAlertModule?.showOrderNotification) {
+      try {
+        BackgroundAlertModule.showOrderNotification(id, title, message, sessionId);
+      } catch (err) {
+        console.warn('[BackgroundAlertService] Failed to show order notification:', err);
+      }
+    }
+  }
+
+  /**
+   * Cancels a specific notification by ID.
+   */
+  cancelNotification(id: number) {
+    if (Platform.OS === 'android' && BackgroundAlertModule?.cancelNotification) {
+      try {
+        BackgroundAlertModule.cancelNotification(id);
+      } catch (err) {
+        console.warn('[BackgroundAlertService] Failed to cancel notification:', err);
+      }
+    }
+  }
+
+  /**
+   * Retrieves the sessionId if the app was launched by tapping a notification.
+   */
+  async getInitialSessionId(): Promise<string | null> {
+    if (Platform.OS === 'android' && BackgroundAlertModule?.getInitialSessionId) {
+      try {
+        return await BackgroundAlertModule.getInitialSessionId();
+      } catch (err) {
+        console.warn('[BackgroundAlertService] Failed to get initial session ID:', err);
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Registers a listener for when a notification is tapped while the app is in background or foreground.
+   */
+  onNotificationOpenOrder(callback: (sessionId: string) => void): () => void {
+    const subscription = DeviceEventEmitter.addListener(
+      'onNotificationOpenOrder',
+      (event: { sessionId?: string }) => {
+        if (event?.sessionId) {
+          callback(event.sessionId);
+        }
+      }
+    );
+    return () => subscription.remove();
+  }
+
+  /**
+   * Requests POST_NOTIFICATIONS permission on Android 13+ (API 33+).
+   */
+  async requestNotificationPermission(): Promise<boolean> {
+    if (Platform.OS === 'android' && Platform.Version >= 33) {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.warn('[BackgroundAlertService] Error requesting notification permission:', err);
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
