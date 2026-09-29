@@ -72,6 +72,8 @@ interface AdminState {
   categories: Category[];
   tables: RestaurantTable[];
   incomingAlert: TableSession | null;
+  incomingQueue: TableSession[];
+  incomingQueueIndex: number;
   printReceiptSession: TableSession | null;
   tenantConfig: any | null;
   acceptingOrders: boolean;
@@ -91,6 +93,7 @@ interface AdminState {
   updateOrderStatus: (sessionId: string, orderId: string, status: OrderStatus) => Promise<void>;
   acceptOrder: (sessionId: string, orderId?: string) => Promise<void>;
   declineOrder: (sessionId: string, orderId?: string) => Promise<void>;
+  cancelOrder: (sessionId: string, orderId?: string) => Promise<void>;
   markPaid: (sessionId: string) => Promise<void>;
   completeSession: (sessionId: string) => Promise<void>;
   toggleStock: (itemId: string, isAvailable: boolean) => Promise<void>;
@@ -99,6 +102,11 @@ interface AdminState {
   deleteItem: (itemId: string) => Promise<void>;
   triggerIncomingOrderAlarm: (session: TableSession) => void;
   dismissIncomingAlert: () => void;
+  dismissIncomingAlert: (sessionId?: string) => void;
+  nextIncomingAlert: () => void;
+  prevIncomingAlert: () => void;
+  setIncomingAlertIndex: (index: number) => void;
+  silenceAlarmOnly: () => void;
   setPrintReceiptSession: (session: TableSession | null) => void;
   setConnected: (connected: boolean) => void;
   fetchTables: () => Promise<void>;
@@ -130,6 +138,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   categories: [],
   tables: [],
   incomingAlert: null,
+  incomingQueue: [],
+  incomingQueueIndex: 0,
   printReceiptSession: null,
   acceptingOrders: true,
   acceptingOnlineOrders: true,
@@ -224,6 +234,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         menuItems: [],
         categories: [],
         incomingAlert: null,
+        incomingQueue: [],
+        incomingQueueIndex: 0,
       });
 
       const activeUrl = (customUrl && customUrl.trim()) ? customUrl.trim() : (get().serverUrl || DEFAULT_SERVER_URL);
@@ -319,6 +331,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       menuItems: [],
       categories: [],
       incomingAlert: null,
+      incomingQueue: [],
+      incomingQueueIndex: 0,
       printReceiptSession: null,
     });
   },
@@ -421,6 +435,21 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   acceptOrder: async (sessionId, orderId) => {
     backgroundAlertService.cancelNotification(getNotificationId(sessionId));
     get().dismissIncomingAlert();
+    const state = get();
+    const nextQueue = state.incomingQueue.filter((s) => s.id !== sessionId);
+    const nextIndex = Math.min(state.incomingQueueIndex, Math.max(0, nextQueue.length - 1));
+    const nextAlert = nextQueue.length > 0 ? nextQueue[nextIndex] : null;
+
+    if (nextQueue.length === 0) {
+      alarmService.stopAlert();
+    }
+
+    set({
+      incomingQueue: nextQueue,
+      incomingAlert: nextAlert,
+      incomingQueueIndex: nextIndex,
+    });
+
     try {
       await apiService.acceptOrder(sessionId, orderId);
       await get().fetchSessions();
@@ -432,11 +461,65 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   declineOrder: async (sessionId, orderId) => {
     backgroundAlertService.cancelNotification(getNotificationId(sessionId));
     get().dismissIncomingAlert();
+    const state = get();
+    const nextQueue = state.incomingQueue.filter((s) => s.id !== sessionId);
+    const nextIndex = Math.min(state.incomingQueueIndex, Math.max(0, nextQueue.length - 1));
+    const nextAlert = nextQueue.length > 0 ? nextQueue[nextIndex] : null;
+
+    if (nextQueue.length === 0) {
+      alarmService.stopAlert();
+    }
+
+    set({
+      incomingQueue: nextQueue,
+      incomingAlert: nextAlert,
+      incomingQueueIndex: nextIndex,
+    });
+
     try {
       await apiService.declineOrder(sessionId, orderId);
       await get().fetchSessions();
     } catch (err) {
       console.error('[AdminStore] Failed to decline order:', err);
+    }
+  },
+
+  cancelOrder: async (sessionId: string, orderId?: string) => {
+    backgroundAlertService.cancelNotification(getNotificationId(sessionId));
+    const state = get();
+    const nextQueue = state.incomingQueue.filter((s) => s.id !== sessionId);
+    const nextIndex = Math.min(state.incomingQueueIndex, Math.max(0, nextQueue.length - 1));
+    const nextAlert = nextQueue.length > 0 ? nextQueue[nextIndex] : null;
+
+    if (nextQueue.length === 0) {
+      alarmService.stopAlert();
+    }
+
+    set({
+      incomingQueue: nextQueue,
+      incomingAlert: nextAlert,
+      incomingQueueIndex: nextIndex,
+    });
+
+    try {
+      if (orderId) {
+        await apiService.updateOrderStatus(sessionId, orderId, 'cancelled');
+      } else {
+        const session = get().activeSessions.find((s) => s.id === sessionId);
+        if (session && session.orders?.length > 0) {
+          for (const o of session.orders) {
+            if (o.status !== 'cancelled') {
+              await apiService.updateOrderStatus(sessionId, o.id, 'cancelled');
+            }
+          }
+        } else {
+          await apiService.deleteSession(sessionId);
+        }
+      }
+      await get().fetchSessions();
+    } catch (err) {
+      console.error('[AdminStore] Failed to cancel order:', err);
+      await get().fetchSessions();
     }
   },
 
@@ -529,9 +612,26 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   triggerIncomingOrderAlarm: (session: TableSession) => {
     console.log('[AdminStore] 🔔 TRIGGERING ORDER ALARM FOR:', session.id);
     set({ incomingAlert: session });
+    const state = get();
+    const existingIdx = state.incomingQueue.findIndex((s) => s.id === session.id);
+    let updatedQueue = [...state.incomingQueue];
+    if (existingIdx >= 0) {
+      updatedQueue[existingIdx] = session;
+    } else {
+      updatedQueue.push(session);
+    }
+
+    const activeIndex = Math.min(state.incomingQueueIndex, updatedQueue.length - 1);
+    set({
+      incomingQueue: updatedQueue,
+      incomingAlert: updatedQueue[activeIndex],
+      incomingQueueIndex: activeIndex,
+    });
+
     alarmService.startAlert();
 
     // Show system notification with sound & vibration
+    // Show system notification with unique sound & vibration ID per session
     const currency = get().currency || '₹';
     const { title, message, notifId } = buildNotificationContent(session, currency);
     backgroundAlertService.showOrderNotification(notifId, title, message, session.id);
@@ -541,8 +641,53 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     const currentAlert = get().incomingAlert;
     if (currentAlert) {
       backgroundAlertService.cancelNotification(getNotificationId(currentAlert.id));
+  dismissIncomingAlert: (sessionId?: string) => {
+    const state = get();
+    const targetId = sessionId || state.incomingAlert?.id;
+    if (targetId) {
+      backgroundAlertService.cancelNotification(getNotificationId(targetId));
+      const nextQueue = state.incomingQueue.filter((s) => s.id !== targetId);
+      const nextIndex = Math.min(state.incomingQueueIndex, Math.max(0, nextQueue.length - 1));
+      const nextAlert = nextQueue.length > 0 ? nextQueue[nextIndex] : null;
+
+      if (nextQueue.length === 0) {
+        alarmService.stopAlert();
+      }
+
+      set({
+        incomingQueue: nextQueue,
+        incomingAlert: nextAlert,
+        incomingQueueIndex: nextIndex,
+      });
+    } else {
+      alarmService.stopAlert();
+      set({ incomingAlert: null, incomingQueue: [], incomingQueueIndex: 0 });
     }
     set({ incomingAlert: null });
+  },
+
+  nextIncomingAlert: () => {
+    const { incomingQueue, incomingQueueIndex } = get();
+    if (incomingQueue.length <= 1) return;
+    const nextIndex = (incomingQueueIndex + 1) % incomingQueue.length;
+    set({ incomingQueueIndex: nextIndex, incomingAlert: incomingQueue[nextIndex] });
+  },
+
+  prevIncomingAlert: () => {
+    const { incomingQueue, incomingQueueIndex } = get();
+    if (incomingQueue.length <= 1) return;
+    const prevIndex = (incomingQueueIndex - 1 + incomingQueue.length) % incomingQueue.length;
+    set({ incomingQueueIndex: prevIndex, incomingAlert: incomingQueue[prevIndex] });
+  },
+
+  setIncomingAlertIndex: (index: number) => {
+    const { incomingQueue } = get();
+    if (index >= 0 && index < incomingQueue.length) {
+      set({ incomingQueueIndex: index, incomingAlert: incomingQueue[index] });
+    }
+  },
+
+  silenceAlarmOnly: () => {
     alarmService.stopAlert();
   },
 

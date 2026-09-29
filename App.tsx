@@ -44,6 +44,17 @@ export default function App() {
 
     if (session) {
       useAdminStore.setState({ incomingAlert: session });
+      const state = useAdminStore.getState();
+      const existingIdx = state.incomingQueue.findIndex((s) => s.id === session!.id);
+      if (existingIdx >= 0) {
+        state.setIncomingAlertIndex(existingIdx);
+      } else {
+        useAdminStore.setState({
+          incomingQueue: [session, ...state.incomingQueue],
+          incomingAlert: session,
+          incomingQueueIndex: 0,
+        });
+      }
     }
   };
 

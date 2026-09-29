@@ -39,6 +39,7 @@ export interface TableSession {
   takeawayLocation?: 'inside' | 'outside' | 'in';
   deliveryFee?: number;
   joinPin?: string;
+  pin?: string;
   isCompleted?: boolean;
   needsAttention?: boolean;
   attentionType?: 'call' | 'payment';

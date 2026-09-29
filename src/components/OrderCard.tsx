@@ -14,6 +14,9 @@ import {
   Bell, 
   LogOut,
   Utensils
+  User,
+  Hash,
+  XCircle
 } from 'lucide-react-native';
 
 interface OrderCardProps {
@@ -36,6 +39,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
     updateOrderStatus, 
     acceptOrder, 
     declineOrder, 
+    cancelOrder,
     markPaid, 
     completeSession, 
     setPrintReceiptSession, 
@@ -77,6 +81,43 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const promptCancelSingleOrder = (orderId: string, orderNumber: string) => {
+    Alert.alert(
+      'Cancel Order?',
+      `Are you sure you want to cancel ${orderNumber}? The customer will be notified that this order was cancelled.`,
+      [
+        { text: 'Keep Order', style: 'cancel' },
+        {
+          text: 'Yes, Cancel Order',
+          style: 'destructive',
+          onPress: () => handleStatusChange(orderId, 'cancelled'),
+        },
+      ]
+    );
+  };
+
+  const handleCancelEntireSession = () => {
+    Alert.alert(
+      `Cancel ${isTakeaway ? 'Takeaway Order' : `Table ${session.tableNumber}`}?`,
+      `Are you sure you want to cancel this entire ${isTakeaway ? 'takeaway order' : `table session`}? All active items will be cancelled.`,
+      [
+        { text: 'Keep Active', style: 'cancel' },
+        {
+          text: 'Yes, Cancel Entirely',
+          style: 'destructive',
+          onPress: async () => {
+            setActionLoading('cancel-all');
+            try {
+              await cancelOrder(session.id);
+            } finally {
+              setActionLoading(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const isTakeaway = session.orderType === 'takeaway';
@@ -146,6 +187,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
                 [
                   { text: 'Cancel', style: 'cancel' },
                   { text: 'Dismiss', onPress: () => {/* handled via socket update in real app, ignored for now as per instructions */} },
+                  { text: 'Dismiss', onPress: () => {/* handled via socket update in real app */} },
                 ]
               );
             }}
@@ -156,6 +198,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
         </View>
       )}
 
+      {/* ── Card Main Header ── */}
       <TouchableOpacity 
         style={styles.cardHeader} 
         onPress={() => setIsExpanded(!isExpanded)}
@@ -198,6 +241,53 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
         </View>
       </TouchableOpacity>
 
+      {/* ── Permanent Customer Info Strip (Visible in ALL states after accepting) ── */}
+      <View style={styles.customerStrip}>
+        <View style={styles.customerStripTop}>
+          <View style={styles.customerNameGroup}>
+            <User size={13} color="#475569" />
+            <Text style={styles.customerNameText} numberOfLines={1}>
+              {session.customerNames?.join(', ') || (isTakeaway ? 'Takeaway Customer' : 'Dine-in Guest')}
+            </Text>
+          </View>
+
+          {(session.pin || session.joinPin) && !isTakeaway ? (
+            <View style={styles.pinBadge}>
+              <Text style={styles.pinBadgeText}>PIN: {session.pin || session.joinPin}</Text>
+            </View>
+          ) : null}
+
+          {session.takeawayLocation ? (
+            <View style={styles.locBadge}>
+              <Text style={styles.locBadgeText}>
+                {session.takeawayLocation === 'outside' ? 'DELIVERY' : 'IN-STORE PICKUP'}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        {session.mobileNumber ? (
+          <TouchableOpacity onPress={handleCall} style={styles.callStripRow} activeOpacity={0.75}>
+            <Phone size={13} color="#EA580C" />
+            <Text style={styles.callStripText}>+91 {session.mobileNumber}</Text>
+            <View style={styles.callPill}>
+              <Text style={styles.callPillText}>CALL</Text>
+            </View>
+          </TouchableOpacity>
+        ) : null}
+
+        {session.address ? (
+          <TouchableOpacity onPress={handleOpenMap} style={styles.addressStripRow} activeOpacity={0.75}>
+            <MapPin size={13} color="#2563EB" />
+            <Text style={styles.addressStripText} numberOfLines={2}>
+              {session.address} {session.pincode ? `(${session.pincode})` : ''}
+            </Text>
+            <Text style={styles.mapPillText}>MAP</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      {/* ── Pending Order Action Banner (When awaiting initial accept/reject) ── */}
       {hasPendingOrder && (
         <View style={styles.pendingAlertBox}>
           <View style={styles.pendingHeader}>
@@ -260,6 +350,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
         </TouchableOpacity>
       ) : null}
 
+      {/* ── Order Items List ── */}
       <View style={styles.ordersSection}>
         {allOrders.map((order, orderIdx) => (
           <View key={order.id || orderIdx} style={styles.orderBox}>
@@ -298,6 +389,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
               </View>
             )}
 
+            {/* ── Status Change Row (with CANCEL button for anytime cancellation) ── */}
             <View style={styles.statusButtonsRow}>
               {(['preparing', 'ready', 'served'] as OrderStatus[]).map((st) => {
                 const isActive = order.status === st;
@@ -320,11 +412,34 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
                   </TouchableOpacity>
                 );
               })}
+
+              {/* Cancel Button */}
+              <TouchableOpacity
+                style={[
+                  styles.statusBtn, 
+                  styles.cancelStatusBtn,
+                  order.status === 'cancelled' ? styles.statusBtnCancelled : null
+                ]}
+                onPress={() => promptCancelSingleOrder(order.id, `Order #${order.id?.slice(-4) || orderIdx + 1}`)}
+                disabled={!!actionLoading || order.status === 'cancelled'}
+              >
+                {actionLoading === `${order.id}-cancelled` ? (
+                  <ActivityIndicator size="small" color="#EF4444" />
+                ) : (
+                  <Text style={[
+                    styles.statusBtnText, 
+                    order.status === 'cancelled' ? styles.statusBtnTextActive : styles.cancelStatusBtnText
+                  ]}>
+                    {order.status === 'cancelled' ? 'CANCELLED' : 'CANCEL'}
+                  </Text>
+                )}
+              </TouchableOpacity>
             </View>
           </View>
         ))}
       </View>
 
+      {/* ── Card Footer ── */}
       <View style={styles.cardFooter}>
         <View>
           <Text style={styles.totalLabel}>TOTAL AMOUNT</Text>
@@ -338,6 +453,22 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
             activeOpacity={0.8}
           >
             <Printer size={16} color="#0F172A" />
+          </TouchableOpacity>
+
+          {/* Cancel Entire Table / Order Action */}
+          <TouchableOpacity 
+            style={styles.cancelEntireBtn} 
+            onPress={handleCancelEntireSession}
+            disabled={!!actionLoading}
+            activeOpacity={0.8}
+          >
+            {actionLoading === 'cancel-all' ? (
+              <ActivityIndicator size="small" color="#EF4444" />
+            ) : (
+              <Text style={styles.cancelEntireText}>
+                {isTakeaway ? 'Cancel' : 'Cancel Table'}
+              </Text>
+            )}
           </TouchableOpacity>
 
           {session.paymentStatus !== 'paid' ? (
@@ -543,6 +674,124 @@ const styles = StyleSheet.create({
   pendingAlertBox: {
     backgroundColor: '#FFFBEB',
     padding: 12,
+  customerStrip: {
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FEF3C7',
+    borderBottomColor: '#F1F5F9',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 5,
+  },
+  pendingHeader: {
+  customerStripTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+    gap: 8,
+  },
+  pendingTag: {
+  customerNameGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  pendingTagText: {
+  customerNameText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  pinBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+  },
+  pinBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#B45309',
+    color: '#4338CA',
+  },
+  locBadge: {
+    fontSize: 10,
+    backgroundColor: '#FFF7ED',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+  },
+  locBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#64748B',
+    color: '#C2410C',
+  },
+  callStripRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+  },
+  callStripText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#EA580C',
+  },
+  callPill: {
+    backgroundColor: '#EA580C',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 'auto',
+  },
+  callPillText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  addressStripRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  phoneRow: {
+  addressStripText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#334155',
+    flex: 1,
+  },
+  mapPillText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#2563EB',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  pendingAlertBox: {
+    backgroundColor: '#FFFBEB',
+    padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#FEF3C7',
   },
@@ -556,27 +805,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  pendingTagText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#B45309',
-  },
-  locBadge: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  phoneRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
     marginVertical: 4,
   },
   phoneText: {
@@ -584,11 +812,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#EA580C',
     textDecorationLine: 'underline',
+  pendingTagText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#B45309',
   },
   pendingActions: {
     flexDirection: 'row',
     gap: 8,
     marginTop: 8,
+    marginTop: 6,
   },
   declineBtn: {
     flex: 1,
@@ -732,6 +965,7 @@ const styles = StyleSheet.create({
   statusButtonsRow: {
     flexDirection: 'row',
     gap: 6,
+    gap: 5,
   },
   statusBtn: {
     flex: 1,
@@ -748,11 +982,23 @@ const styles = StyleSheet.create({
   },
   statusBtnText: {
     fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: '#64748B',
   },
   statusBtnTextActive: {
     color: '#FFFFFF',
+  },
+  cancelStatusBtn: {
+    backgroundColor: '#FFF1F2',
+    borderColor: '#FECDD3',
+  },
+  cancelStatusBtnText: {
+    color: '#E11D48',
+  },
+  statusBtnCancelled: {
+    backgroundColor: '#EF4444',
+    borderColor: '#DC2626',
   },
   cardFooter: {
     flexDirection: 'row',
@@ -779,6 +1025,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    gap: 6,
   },
   printIconButton: {
     width: 36,
@@ -789,6 +1036,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+  },
+  cancelEntireBtn: {
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelEntireText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#E11D48',
   },
   markPaidBtn: {
     flexDirection: 'row',
