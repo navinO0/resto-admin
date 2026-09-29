@@ -63,6 +63,13 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x android/gradlew
 
+      - name: Ensure Debug Keystore Exists
+        run: |
+          if [ ! -f android/app/debug.keystore ]; then
+            echo "Generating missing debug.keystore..."
+            keytool -genkey -v -keystore android/app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
       - name: Build Release APK
         if: "${{ github.event.inputs.build_type == 'release' || github.event.inputs.build_type == 'all' || github.event_name != 'workflow_dispatch' }}"
         run: |

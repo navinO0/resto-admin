@@ -51,5 +51,6 @@ android/local.properties
 android/*.keystore
 android/*.jks
 android/app/*.keystore
+!android/app/debug.keystore
 android/app/*.jks
 *.apk
