@@ -68,6 +68,8 @@ interface AdminState {
   isLoading: boolean;
   activeFilter: 'all' | 'pending' | 'kitchen' | 'ready' | 'takeaway';
   activeSessions: TableSession[];
+  historicalSessions: TableSession[];
+  isHistoryLoading: boolean;
   menuItems: MenuItem[];
   categories: Category[];
   tables: RestaurantTable[];
@@ -89,6 +91,7 @@ interface AdminState {
   setConnectionConfig: (serverUrl: string, tenantId?: string, restaurantName?: string) => Promise<boolean>;
   setFilter: (filter: 'all' | 'pending' | 'kitchen' | 'ready' | 'takeaway') => void;
   fetchSessions: () => Promise<void>;
+  fetchHistory: () => Promise<void>;
   fetchMenu: () => Promise<void>;
   updateOrderStatus: (sessionId: string, orderId: string, status: OrderStatus) => Promise<void>;
   acceptOrder: (sessionId: string, orderId?: string) => Promise<void>;
@@ -133,6 +136,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   isLoading: false,
   activeFilter: 'all',
   activeSessions: [],
+  historicalSessions: [],
+  isHistoryLoading: false,
   menuItems: [],
   categories: [],
   tables: [],
@@ -212,6 +217,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
           authToken: null,
           tenantId: '',
           activeSessions: [],
+  historicalSessions: [],
+  isHistoryLoading: false,
           menuItems: [],
           categories: [],
         });
@@ -230,6 +237,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       // Clear any prior tenant data immediately to ensure zero cross-tenant contamination
       set({
         activeSessions: [],
+  historicalSessions: [],
+  isHistoryLoading: false,
         menuItems: [],
         categories: [],
         incomingAlert: null,
@@ -327,6 +336,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       isAuthenticated: false,
       isConnected: false,
       activeSessions: [],
+  historicalSessions: [],
+  isHistoryLoading: false,
       menuItems: [],
       categories: [],
       incomingAlert: null,
@@ -383,6 +394,19 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   },
 
   setFilter: (filter) => set({ activeFilter: filter }),
+
+  fetchHistory: async () => {
+    if (!getAuthToken() || !get().tenantId) return;
+    set({ isHistoryLoading: true });
+    try {
+      const sessions = await apiService.getHistoricalSessions();
+      set({ historicalSessions: sessions });
+    } catch (err) {
+      console.warn('[AdminStore] Failed to fetch historical sessions:', err);
+    } finally {
+      set({ isHistoryLoading: false });
+    }
+  },
 
   fetchSessions: async () => {
     if (!getAuthToken() || !get().tenantId) {
@@ -627,13 +651,12 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       incomingQueueIndex: activeIndex,
     });
 
-    alarmService.startAlert();
-
-    // Show system notification with sound & vibration
-    // Show system notification with unique sound & vibration ID per session
-    const currency = get().currency || '₹';
-    const { title, message, notifId } = buildNotificationContent(session, currency);
-    backgroundAlertService.showOrderNotification(notifId, title, message, session.id);
+    if (existingIdx < 0) {
+      alarmService.startAlert();
+      const currency = get().currency || '₹';
+      const { title, message, notifId } = buildNotificationContent(session, currency);
+      backgroundAlertService.showOrderNotification(notifId, title, message, session.id);
+    }
   },
 
   dismissIncomingAlert: (sessionId?: string) => {
@@ -658,7 +681,6 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       alarmService.stopAlert();
       set({ incomingAlert: null, incomingQueue: [], incomingQueueIndex: 0 });
     }
-    set({ incomingAlert: null });
   },
 
   nextIncomingAlert: () => {

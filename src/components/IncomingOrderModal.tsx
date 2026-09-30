@@ -2,19 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, ScrollView, Linking } from 'react-native';
 import { useAdminStore } from '../store/useAdminStore';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { 
-  Bell, 
-  ShoppingBag, 
-  CheckCircle, 
-  XCircle, 
-  VolumeX, 
-  ChevronLeft, 
-  ChevronRight, 
-  Phone, 
-  MapPin, 
-  User, 
-  Hash 
-} from 'lucide-react-native';
+
 
 export const IncomingOrderModal: React.FC = () => {
   const { 

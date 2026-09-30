@@ -9,12 +9,13 @@ import { LiveOrdersScreen } from './src/screens/LiveOrdersScreen';
 import { MenuScreen } from './src/screens/MenuScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { TablesScreen } from './src/screens/TablesScreen';
+import { HistoryScreen } from './src/screens/HistoryScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { IncomingOrderModal } from './src/components/IncomingOrderModal';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'tables' | 'settings'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'tables' | 'history' | 'settings'>('orders');
   const appStateRef = useRef(AppState.currentState);
   const {
     activeSessions,
@@ -191,6 +192,7 @@ export default function App() {
           {activeTab === 'orders' && <LiveOrdersScreen />}
           {activeTab === 'menu' && <MenuScreen />}
           {activeTab === 'tables' && <TablesScreen />}
+          {activeTab === 'history' && <HistoryScreen />}
           {activeTab === 'settings' && <SettingsScreen />}
         </View>
 
@@ -233,6 +235,18 @@ export default function App() {
             <MaterialIcons name="grid-on" size={22} color={activeTab === 'tables' ? '#EA580C' : '#94A3B8'} />
             <Text style={[styles.tabLabel, activeTab === 'tables' ? styles.tabLabelActive : null]}>
               Tables
+            </Text>
+          </TouchableOpacity>
+
+          
+          <TouchableOpacity
+            style={styles.tabBtn}
+            onPress={() => setActiveTab('history')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="time-outline" size={22} color={activeTab === 'history' ? '#EA580C' : '#94A3B8'} />
+            <Text style={[styles.tabLabel, activeTab === 'history' ? styles.tabLabelActive : null]}>
+              History
             </Text>
           </TouchableOpacity>
 

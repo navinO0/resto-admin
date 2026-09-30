@@ -138,6 +138,13 @@ export const apiService = {
   },
 
   // ── SESSIONS & LIVE ORDERS (TENANT ISOLATED) ──
+  async getHistoricalSessions(): Promise<TableSession[]> {
+    const res = await getAxiosInstance().get('/sessions', {
+      params: { isCompleted: 'all' },
+    });
+    return Array.isArray(res.data) ? res.data : [];
+  },
+
   async getActiveSessions(): Promise<TableSession[]> {
     const res = await getAxiosInstance().get('/sessions', {
       params: { isCompleted: false },

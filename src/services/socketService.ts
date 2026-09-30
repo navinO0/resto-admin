@@ -209,6 +209,7 @@ class SocketService {
 
     this.socket.on('session:attention', (session: TableSession) => {
       console.log('[SocketService] 🔔 session:attention — Table:', session.tableNumber);
+      session.needsAttention = true;
       useAdminStore.getState().fetchSessions();
       useAdminStore.getState().triggerIncomingOrderAlarm(session);
     });
