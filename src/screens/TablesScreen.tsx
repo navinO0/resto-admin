@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useAdminStore } from '../store/useAdminStore';
 import { RestaurantTable } from '../types';
-import { X, Users, QrCode, Maximize2 } from 'lucide-react-native';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_W - 48) / 2;
@@ -86,7 +86,7 @@ const QRModal: React.FC<QRModalProps> = ({ table, onClose }) => {
               activeOpacity={0.7}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
-              <X size={20} color="#64748B" />
+              <Ionicons name="close" size={20} color="#64748B" />
             </TouchableOpacity>
           </View>
 
@@ -100,7 +100,7 @@ const QRModal: React.FC<QRModalProps> = ({ table, onClose }) => {
               />
             ) : (
               <View style={modalStyles.noQrPlaceholder}>
-                <QrCode size={48} color="#94A3B8" />
+                <MaterialIcons name="qr-code" size={48} color="#94A3B8" />
                 <Text style={modalStyles.noQrText}>QR Code Not Available</Text>
               </View>
             )}
@@ -163,7 +163,7 @@ export const TablesScreen: React.FC = () => {
 
         {tables.length === 0 && !refreshing && (
           <View style={styles.emptyContainer}>
-            <QrCode size={48} color="#94A3B8" />
+            <MaterialIcons name="qr-code" size={48} color="#94A3B8" />
             <Text style={styles.emptyTitle}>No Tables Configured</Text>
             <Text style={styles.emptySubtitle}>Pull down to sync tables from server</Text>
           </View>
@@ -197,7 +197,7 @@ export const TablesScreen: React.FC = () => {
                     </View>
 
                     <View style={styles.capacityMeta}>
-                      <Users size={12} color="#64748B" />
+                      <Ionicons name="people-outline" size={12} color="#64748B" />
                       <Text style={styles.capacityMetaText}>{table.capacity} seats</Text>
                     </View>
 
@@ -215,13 +215,13 @@ export const TablesScreen: React.FC = () => {
                             resizeMode="contain"
                           />
                           <View style={styles.expandOverlay}>
-                            <Maximize2 size={13} color="#FFFFFF" />
+                            <Ionicons name="expand-outline" size={13} color="#FFFFFF" />
                             <Text style={styles.expandText}>Tap to Scan</Text>
                           </View>
                         </>
                       ) : (
                         <View style={styles.qrEmptyBox}>
-                          <QrCode size={28} color="#CBD5E1" />
+                          <MaterialIcons name="qr-code" size={28} color="#CBD5E1" />
                           <Text style={styles.qrEmptyText}>No QR Code</Text>
                         </View>
                       )}

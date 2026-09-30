@@ -1,8 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, ScrollView } from 'react-native';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, ScrollView, Linking } from 'react-native';
 import { useAdminStore } from '../store/useAdminStore';
-import { Bell, ShoppingBag, Utensils, CheckCircle, XCircle, VolumeX } from 'lucide-react-native';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { 
   Bell, 
   ShoppingBag, 
@@ -51,7 +50,6 @@ export const IncomingOrderModal: React.FC = () => {
   if (!incomingAlert) return null;
 
   const isTakeaway = incomingAlert.orderType === 'takeaway';
-  const customerName = incomingAlert.customerNames?.[0] || (isTakeaway ? 'Takeaway Customer' : `Table ${incomingAlert.tableNumber}`);
   const customerName = incomingAlert.customerNames?.[0] || (isTakeaway ? 'Takeaway Customer' : `Table ${incomingAlert.tableNumber} Guest`);
   const allOrders = incomingAlert.orders || [];
   const allItems = allOrders.flatMap((o) => o.items || []);
@@ -97,7 +95,7 @@ export const IncomingOrderModal: React.FC = () => {
                   onPress={prevIncomingAlert}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <ChevronLeft size={16} color="#0F172A" />
+                  <Ionicons name="chevron-back" size={16} color="#0F172A" />
                 </TouchableOpacity>
                 <Text style={styles.navText}>
                   {incomingQueueIndex + 1} of {incomingQueue.length}
@@ -107,7 +105,7 @@ export const IncomingOrderModal: React.FC = () => {
                   onPress={nextIncomingAlert}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <ChevronRight size={16} color="#0F172A" />
+                  <Ionicons name="chevron-forward" size={16} color="#0F172A" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -115,23 +113,19 @@ export const IncomingOrderModal: React.FC = () => {
           
           <View style={styles.header}>
             <Animated.View style={[styles.iconContainer, { transform: [{ scale: pulseAnim }] }]}>
-              <Bell size={28} color="#FFFFFF" />
+              <Ionicons name="notifications-outline" size={28} color="#FFFFFF" />
               {isTakeaway ? (
-                <ShoppingBag size={26} color="#FFFFFF" />
+                <Ionicons name="bag-outline" size={26} color="#FFFFFF" />
               ) : (
-                <Bell size={26} color="#FFFFFF" />
+                <Ionicons name="notifications-outline" size={26} color="#FFFFFF" />
               )}
             </Animated.View>
             <View style={styles.headerText}>
               <Text style={styles.alertTag}>
                 {incomingAlert.needsAttention
                   ? 'GUEST ASSISTANCE CALL'
-                  : isTakeaway
-                  ? 'INCOMING TAKEAWAY ORDER'
-                  ? 'INCOMING TAKEAWAY / ONLINE ORDER'
-                  : 'NEW DINE-IN ORDER'}
+                  : isTakeaway ? 'INCOMING TAKEAWAY / ONLINE ORDER' : 'NEW DINE-IN ORDER'}
               </Text>
-              <Text style={styles.title}>{customerName}</Text>
               <Text style={styles.title} numberOfLines={1}>{customerName}</Text>
             </View>
           </View>
@@ -139,7 +133,7 @@ export const IncomingOrderModal: React.FC = () => {
           {/* ── Customer Details Strip ── */}
           <View style={styles.customerBox}>
             <View style={styles.customerRow}>
-              <User size={13} color="#64748B" />
+              <Ionicons name="person-outline" size={13} color="#64748B" />
               <Text style={styles.customerLabel}>Customer:</Text>
               <Text style={styles.customerValue} numberOfLines={1}>
                 {incomingAlert.customerNames?.join(', ') || (isTakeaway ? 'Takeaway Customer' : 'Dine-in Guest')}
@@ -148,7 +142,7 @@ export const IncomingOrderModal: React.FC = () => {
 
             {incomingAlert.mobileNumber ? (
               <TouchableOpacity onPress={handleCall} style={styles.phoneClickableRow} activeOpacity={0.7}>
-                <Phone size={13} color="#EA580C" />
+                <Ionicons name="call-outline" size={13} color="#EA580C" />
                 <Text style={styles.phoneLabel}>Phone:</Text>
                 <Text style={styles.phoneValue}>+91 {incomingAlert.mobileNumber}</Text>
                 <Text style={styles.callBadge}>TAP TO CALL</Text>
@@ -157,7 +151,7 @@ export const IncomingOrderModal: React.FC = () => {
 
             {(incomingAlert.pin || incomingAlert.joinPin) ? (
               <View style={styles.customerRow}>
-                <Hash size={13} color="#64748B" />
+                <Ionicons name="list-outline" size={13} color="#64748B" />
                 <Text style={styles.customerLabel}>Table PIN:</Text>
                 <Text style={styles.pinValue}>{incomingAlert.pin || incomingAlert.joinPin}</Text>
               </View>
@@ -165,7 +159,7 @@ export const IncomingOrderModal: React.FC = () => {
 
             {incomingAlert.address ? (
               <TouchableOpacity onPress={handleOpenMap} style={styles.addressClickableRow} activeOpacity={0.7}>
-                <MapPin size={13} color="#2563EB" />
+                <Ionicons name="location-outline" size={13} color="#2563EB" />
                 <Text style={styles.customerLabel}>Address:</Text>
                 <Text style={styles.addressValue} numberOfLines={1}>
                   {incomingAlert.address} {incomingAlert.pincode ? `(${incomingAlert.pincode})` : ''}
@@ -214,8 +208,8 @@ export const IncomingOrderModal: React.FC = () => {
 
           <View style={styles.actions}>
             <TouchableOpacity style={styles.acceptButton} onPress={handleAccept} activeOpacity={0.85}>
-              <CheckCircle size={22} color="#FFFFFF" />
-              <CheckCircle size={20} color="#FFFFFF" />
+              <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
+              <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
               <Text style={styles.acceptText}>
                 {isTakeaway ? 'ACCEPT TAKEAWAY' : 'ACCEPT TO KITCHEN'}
               </Text>
@@ -223,16 +217,17 @@ export const IncomingOrderModal: React.FC = () => {
 
             <View style={styles.secondaryRow}>
               <TouchableOpacity style={styles.declineButton} onPress={handleDecline} activeOpacity={0.85}>
-                <XCircle size={18} color="#E11D48" />
-                <XCircle size={16} color="#E11D48" />
+                <Ionicons name="close-circle-outline" size={18} color="#E11D48" />
+                <Ionicons name="close-circle-outline" size={16} color="#E11D48" />
                 <Text style={styles.declineText}>Decline</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.silenceButton} onPress={dismissIncomingAlert} activeOpacity={0.85}>
-                <VolumeX size={18} color="#475569" />
+                <Ionicons name="volume-mute-outline" size={18} color="#475569" />
                 <Text style={styles.silenceText}>Silence</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.silenceButton} onPress={silenceAlarmOnly} activeOpacity={0.85}>
-                <VolumeX size={16} color="#475569" />
+                <Ionicons name="volume-mute-outline" size={16} color="#475569" />
                 <Text style={styles.silenceText}>Mute Sound</Text>
               </TouchableOpacity>
 

@@ -180,6 +180,12 @@ export const apiService = {
     if (pendingOrder) {
       return this.updateOrderStatus(sessionId, pendingOrder.id, 'cancelled');
     }
+    const activeOrders = (session.orders || []).filter((o) => o.status !== 'cancelled');
+    if (activeOrders.length > 0) {
+      for (const o of activeOrders) {
+        await this.updateOrderStatus(sessionId, o.id, 'cancelled');
+      }
+    }
   },
 
   async markPaymentStatus(sessionId: string, status: 'paid' | 'pending' = 'paid') {

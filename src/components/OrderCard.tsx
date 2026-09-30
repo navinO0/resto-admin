@@ -2,22 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert, ActivityIndicator } from 'react-native';
 import { TableSession, OrderStatus } from '../types';
 import { useAdminStore } from '../store/useAdminStore';
-import { 
-  Phone, 
-  ChevronDown, 
-  ChevronUp, 
-  ShoppingBag, 
-  Check, 
-  Printer, 
-  CheckCircle2, 
-  MapPin, 
-  Bell, 
-  LogOut,
-  Utensils
-  User,
-  Hash,
-  XCircle
-} from 'lucide-react-native';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
 interface OrderCardProps {
   session: TableSession;
@@ -167,7 +152,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
       
       {hasDineInAttention && (
         <View style={styles.attentionBanner}>
-          <Bell size={16} color="#B45309" />
+          <Ionicons name="notifications-outline" size={16} color="#B45309" />
           <View style={styles.attentionTextCol}>
             <Text style={styles.attentionTitle}>
               {session.attentionType === 'payment'
@@ -207,7 +192,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
         <View style={styles.headerLeft}>
           <View style={[styles.avatar, isTakeaway ? styles.takeawayAvatar : styles.dineInAvatar]}>
             {isTakeaway ? (
-              <ShoppingBag size={18} color="#EA580C" />
+              <Ionicons name="bag-outline" size={18} color="#EA580C" />
             ) : (
               <Text style={styles.tableText}>{session.tableNumber}</Text>
             )}
@@ -237,7 +222,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
         </View>
 
         <View style={styles.headerRight}>
-          {isExpanded ? <ChevronUp size={20} color="#94A3B8" /> : <ChevronDown size={20} color="#94A3B8" />}
+          {isExpanded ? <Ionicons name="chevron-up" size={20} color="#94A3B8" /> : <Ionicons name="chevron-down" size={20} color="#94A3B8" />}
         </View>
       </TouchableOpacity>
 
@@ -245,7 +230,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
       <View style={styles.customerStrip}>
         <View style={styles.customerStripTop}>
           <View style={styles.customerNameGroup}>
-            <User size={13} color="#475569" />
+            <Ionicons name="person-outline" size={13} color="#475569" />
             <Text style={styles.customerNameText} numberOfLines={1}>
               {session.customerNames?.join(', ') || (isTakeaway ? 'Takeaway Customer' : 'Dine-in Guest')}
             </Text>
@@ -268,7 +253,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
 
         {session.mobileNumber ? (
           <TouchableOpacity onPress={handleCall} style={styles.callStripRow} activeOpacity={0.75}>
-            <Phone size={13} color="#EA580C" />
+            <Ionicons name="call-outline" size={13} color="#EA580C" />
             <Text style={styles.callStripText}>+91 {session.mobileNumber}</Text>
             <View style={styles.callPill}>
               <Text style={styles.callPillText}>CALL</Text>
@@ -278,7 +263,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
 
         {session.address ? (
           <TouchableOpacity onPress={handleOpenMap} style={styles.addressStripRow} activeOpacity={0.75}>
-            <MapPin size={13} color="#2563EB" />
+            <Ionicons name="location-outline" size={13} color="#2563EB" />
             <Text style={styles.addressStripText} numberOfLines={2}>
               {session.address} {session.pincode ? `(${session.pincode})` : ''}
             </Text>
@@ -292,7 +277,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
         <View style={styles.pendingAlertBox}>
           <View style={styles.pendingHeader}>
             <View style={styles.pendingTag}>
-              <Bell size={13} color="#D97706" />
+              <Ionicons name="notifications-outline" size={13} color="#D97706" />
               <Text style={styles.pendingTagText}>Incoming Order Awaiting Approval</Text>
             </View>
             {session.takeawayLocation && (
@@ -304,7 +289,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
 
           {session.mobileNumber ? (
             <TouchableOpacity onPress={handleCall} style={styles.phoneRow}>
-              <Phone size={14} color="#EA580C" />
+              <Ionicons name="call-outline" size={14} color="#EA580C" />
               <Text style={styles.phoneText}>+91 {session.mobileNumber} (Tap to Call)</Text>
             </TouchableOpacity>
           ) : null}
@@ -331,7 +316,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <>
-                  <CheckCircle2 size={16} color="#FFFFFF" />
+                  <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
                   <Text style={styles.acceptBtnText}>Accept to Kitchen</Text>
                 </>
               )}
@@ -342,7 +327,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
 
       {session.address ? (
         <TouchableOpacity onPress={handleOpenMap} style={styles.addressBox} activeOpacity={0.75}>
-          <MapPin size={14} color="#64748B" />
+          <Ionicons name="location-outline" size={14} color="#64748B" />
           <View style={styles.addressTextContainer}>
             <Text style={styles.addressLabel}>DELIVERY ADDRESS (TAP FOR MAP):</Text>
             <Text style={styles.addressText}>{session.address} {session.pincode ? `(${session.pincode})` : ''}</Text>
@@ -452,7 +437,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
             onPress={() => setPrintReceiptSession(session)}
             activeOpacity={0.8}
           >
-            <Printer size={16} color="#0F172A" />
+            <Ionicons name="print-outline" size={16} color="#0F172A" />
           </TouchableOpacity>
 
           {/* Cancel Entire Table / Order Action */}
@@ -482,7 +467,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <>
-                  <Check size={14} color="#FFFFFF" />
+                  <Ionicons name="checkmark" size={14} color="#FFFFFF" />
                   <Text style={styles.markPaidText}>Mark Paid</Text>
                 </>
               )}
@@ -493,7 +478,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ session }) => {
               onPress={handleCheckout}
               activeOpacity={0.8}
             >
-              <LogOut size={14} color="#FFFFFF" />
+              <Ionicons name="log-out-outline" size={14} color="#FFFFFF" />
               <Text style={styles.checkoutText}>
                 {isTakeaway ? 'Close Order' : 'Close Table'}
               </Text>
@@ -674,16 +659,17 @@ const styles = StyleSheet.create({
   pendingAlertBox: {
     backgroundColor: '#FFFBEB',
     padding: 12,
+  },
   customerStrip: {
     backgroundColor: '#F8FAFC',
     borderBottomWidth: 1,
-    borderBottomColor: '#FEF3C7',
     borderBottomColor: '#F1F5F9',
     paddingHorizontal: 14,
     paddingVertical: 8,
     gap: 5,
   },
   pendingHeader: {
+  },
   customerStripTop: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -692,6 +678,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pendingTag: {
+  },
   customerNameGroup: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -699,6 +686,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   pendingTagText: {
+  },
   customerNameText: {
     fontSize: 12,
     fontWeight: '700',
@@ -715,7 +703,6 @@ const styles = StyleSheet.create({
   pinBadgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#B45309',
     color: '#4338CA',
   },
   locBadge: {
@@ -774,6 +761,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   phoneRow: {
+  },
   addressStripText: {
     fontSize: 11,
     fontWeight: '600',
@@ -812,6 +800,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#EA580C',
     textDecorationLine: 'underline',
+  },
   pendingTagText: {
     fontSize: 12,
     fontWeight: '800',
@@ -820,7 +809,6 @@ const styles = StyleSheet.create({
   pendingActions: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 8,
     marginTop: 6,
   },
   declineBtn: {

@@ -11,7 +11,7 @@ import { SettingsScreen } from './src/screens/SettingsScreen';
 import { TablesScreen } from './src/screens/TablesScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { IncomingOrderModal } from './src/components/IncomingOrderModal';
-import { ListOrdered, Utensils, Settings, Grid3x3, RefreshCw, ChefHat, WifiOff } from 'lucide-react-native';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'tables' | 'settings'>('orders');
@@ -111,7 +111,7 @@ export default function App() {
       <View style={styles.splashContainer}>
         <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
         <View style={styles.splashLogo}>
-          <ChefHat size={44} color="#FFFFFF" />
+          <MaterialIcons name="restaurant-menu" size={44} color="#FFFFFF" />
         </View>
         <Text style={styles.splashTitle}>Restaurant Admin</Text>
         <Text style={styles.splashSub}>Initializing secure tenant terminal...</Text>
@@ -145,7 +145,7 @@ export default function App() {
         <View style={styles.appBar}>
           <View style={styles.brandRow}>
             <View style={styles.logoBadge}>
-              <ChefHat size={20} color="#FFFFFF" />
+              <MaterialIcons name="restaurant-menu" size={20} color="#FFFFFF" />
             </View>
             <View style={styles.brandTextCol}>
               <Text style={styles.brandTitle} numberOfLines={1}>{restaurantName}</Text>
@@ -162,7 +162,7 @@ export default function App() {
                     onPress={() => socketService.manualReconnect()}
                     activeOpacity={0.7}
                   >
-                    <WifiOff size={10} color="#FFFFFF" />
+                    <Ionicons name="wifi" size={10} color="#FFFFFF" />
                     <Text style={styles.reconnectText}>TAP TO RECONNECT</Text>
                   </TouchableOpacity>
                 )}
@@ -182,7 +182,7 @@ export default function App() {
             disabled={isLoading}
             activeOpacity={0.7}
           >
-            <RefreshCw size={17} color="#64748B" />
+            <Ionicons name="refresh-outline" size={17} color="#64748B" />
           </TouchableOpacity>
         </View>
 
@@ -202,7 +202,7 @@ export default function App() {
             activeOpacity={0.8}
           >
             <View>
-              <ListOrdered size={22} color={activeTab === 'orders' ? '#EA580C' : '#94A3B8'} />
+              <Ionicons name="list-outline" size={22} color={activeTab === 'orders' ? '#EA580C' : '#94A3B8'} />
               {totalActiveOrders > 0 && (
                 <View style={[styles.badge, pendingCount > 0 ? styles.badgePending : null]}>
                   <Text style={styles.badgeText}>{totalActiveOrders}</Text>
@@ -219,7 +219,7 @@ export default function App() {
             onPress={() => setActiveTab('menu')}
             activeOpacity={0.8}
           >
-            <Utensils size={22} color={activeTab === 'menu' ? '#EA580C' : '#94A3B8'} />
+            <MaterialIcons name="restaurant" size={22} color={activeTab === 'menu' ? '#EA580C' : '#94A3B8'} />
             <Text style={[styles.tabLabel, activeTab === 'menu' ? styles.tabLabelActive : null]}>
               Menu & Stock
             </Text>
@@ -230,7 +230,7 @@ export default function App() {
             onPress={() => setActiveTab('tables')}
             activeOpacity={0.8}
           >
-            <Grid3x3 size={22} color={activeTab === 'tables' ? '#EA580C' : '#94A3B8'} />
+            <MaterialIcons name="grid-on" size={22} color={activeTab === 'tables' ? '#EA580C' : '#94A3B8'} />
             <Text style={[styles.tabLabel, activeTab === 'tables' ? styles.tabLabelActive : null]}>
               Tables
             </Text>
@@ -241,7 +241,7 @@ export default function App() {
             onPress={() => setActiveTab('settings')}
             activeOpacity={0.8}
           >
-            <Settings size={22} color={activeTab === 'settings' ? '#EA580C' : '#94A3B8'} />
+            <Ionicons name="settings-outline" size={22} color={activeTab === 'settings' ? '#EA580C' : '#94A3B8'} />
             <Text style={[styles.tabLabel, activeTab === 'settings' ? styles.tabLabelActive : null]}>
               Settings
             </Text>

@@ -17,23 +17,7 @@ import { useAdminStore } from '../store/useAdminStore';
 import { storage } from '../utils/storage';
 import { alarmService } from '../services/alarmService';
 import { backgroundAlertService } from '../services/backgroundAlertService';
-import { 
-  Volume2, 
-  Wifi, 
-  User, 
-  LogOut, 
-  LogIn, 
-  CheckCircle2, 
-  Zap, 
-  ShieldCheck, 
-  Smartphone, 
-  Globe, 
-  QrCode,
-  MapPin,
-  Plus,
-  X,
-  Save
-} from 'lucide-react-native';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
 export const SettingsScreen: React.FC = () => {
   const { 
@@ -246,7 +230,7 @@ export const SettingsScreen: React.FC = () => {
           {/* Dedicated Online Orders Control */}
           <View style={styles.operationsRow}>
             <View style={styles.opIconContainer}>
-              <Globe size={18} color="#EA580C" />
+              <Ionicons name="globe-outline" size={18} color="#EA580C" />
             </View>
             <View style={styles.operationsText}>
               <View style={styles.operationsTitleRow}>
@@ -271,7 +255,7 @@ export const SettingsScreen: React.FC = () => {
           {/* Dedicated Table / Dine-In Orders Control */}
           <View style={styles.operationsRow}>
             <View style={styles.opIconContainer}>
-              <QrCode size={18} color="#EA580C" />
+              <MaterialIcons name="qr-code" size={18} color="#EA580C" />
             </View>
             <View style={styles.operationsText}>
               <View style={styles.operationsTitleRow}>
@@ -299,7 +283,7 @@ export const SettingsScreen: React.FC = () => {
           {isAuthenticated && currentUser ? (
             <View style={styles.userProfileRow}>
               <View style={styles.userAvatar}>
-                <User size={22} color="#0F172A" />
+                <Ionicons name="person-outline" size={22} color="#0F172A" />
               </View>
               <View style={styles.userInfo}>
                 <View style={styles.userNameRow}>
@@ -311,7 +295,7 @@ export const SettingsScreen: React.FC = () => {
                 <Text style={styles.userEmail}>{currentUser.email}</Text>
               </View>
               <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-                <LogOut size={16} color="#E11D48" />
+                <Ionicons name="log-out-outline" size={16} color="#E11D48" />
                 <Text style={styles.logoutBtnText}>Logout</Text>
               </TouchableOpacity>
             </View>
@@ -356,7 +340,7 @@ export const SettingsScreen: React.FC = () => {
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
                   <>
-                    <LogIn size={16} color="#FFFFFF" />
+                    <Ionicons name="log-in-outline" size={16} color="#FFFFFF" />
                     <Text style={styles.loginBtnText}>Sign In to Terminal</Text>
                   </>
                 )}
@@ -377,7 +361,7 @@ export const SettingsScreen: React.FC = () => {
             onPress={handleTestAlarm}
             activeOpacity={0.8}
           >
-            <Volume2 size={18} color="#FFFFFF" />
+            <Ionicons name="volume-high-outline" size={18} color="#FFFFFF" />
             <Text style={styles.alarmTestText}>
               {isAlarmPlaying ? 'Stop Ringing' : 'Test Alarm Sound (5s)'}
             </Text>
@@ -394,7 +378,7 @@ export const SettingsScreen: React.FC = () => {
 
           <View style={styles.featureRow}>
             <View style={styles.featureLeft}>
-              <Smartphone size={16} color="#16A34A" />
+              <Ionicons name="phone-portrait-outline" size={16} color="#16A34A" />
               <Text style={styles.featureTitle}>Lockscreen Screen Wake</Text>
             </View>
             <View style={styles.pillGreen}>
@@ -404,7 +388,7 @@ export const SettingsScreen: React.FC = () => {
 
           <View style={styles.featureRow}>
             <View style={styles.featureLeft}>
-              <ShieldCheck size={16} color="#16A34A" />
+              <Ionicons name="shield-checkmark-outline" size={16} color="#16A34A" />
               <Text style={styles.featureTitle}>Battery Consumption</Text>
             </View>
             <View style={styles.pillGreen}>
@@ -414,7 +398,7 @@ export const SettingsScreen: React.FC = () => {
 
           <View style={styles.featureRow}>
             <View style={styles.featureLeft}>
-              <Zap size={16} color={isBatteryOptIgnored ? '#16A34A' : '#EA580C'} />
+              <Ionicons name="flash-outline" size={16} color={isBatteryOptIgnored ? '#16A34A' : '#EA580C'} />
               <Text style={styles.featureTitle}>Background Doze Protection</Text>
             </View>
             <View style={isBatteryOptIgnored ? styles.pillGreen : styles.pillOrange}>
@@ -435,7 +419,7 @@ export const SettingsScreen: React.FC = () => {
               }}
               activeOpacity={0.8}
             >
-              <Zap size={15} color="#FFFFFF" />
+              <Ionicons name="flash-outline" size={15} color="#FFFFFF" />
               <Text style={styles.batteryExemptBtnText}>Disable Battery Optimization</Text>
             </TouchableOpacity>
           )}
@@ -472,7 +456,7 @@ export const SettingsScreen: React.FC = () => {
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
               <>
-                <Globe size={16} color="#FFFFFF" />
+                <Ionicons name="globe-outline" size={16} color="#FFFFFF" />
                 <Text style={styles.saveBtnText}>Save Website URL</Text>
               </>
             )}
@@ -505,7 +489,7 @@ export const SettingsScreen: React.FC = () => {
               onPress={handleAddPincode}
               activeOpacity={0.8}
             >
-              <Plus size={16} color="#FFFFFF" />
+              <Ionicons name="add" size={16} color="#FFFFFF" />
               <Text style={styles.addPincodeBtnText}>Add</Text>
             </TouchableOpacity>
           </View>
@@ -515,13 +499,13 @@ export const SettingsScreen: React.FC = () => {
             {pincodesList.length > 0 ? (
               pincodesList.map((code) => (
                 <View key={code} style={styles.pincodeChip}>
-                  <MapPin size={13} color="#EA580C" />
+                  <Ionicons name="location-outline" size={13} color="#EA580C" />
                   <Text style={styles.pincodeChipText}>{code}</Text>
                   <TouchableOpacity 
                     onPress={() => handleRemovePincode(code)} 
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <X size={14} color="#64748B" />
+                    <Ionicons name="close" size={14} color="#64748B" />
                   </TouchableOpacity>
                 </View>
               ))
@@ -544,7 +528,7 @@ export const SettingsScreen: React.FC = () => {
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
               <>
-                <Save size={16} color="#FFFFFF" />
+                <Ionicons name="save-outline" size={16} color="#FFFFFF" />
                 <Text style={styles.saveBtnText}>Save Delivery Pincodes</Text>
               </>
             )}
@@ -591,7 +575,7 @@ export const SettingsScreen: React.FC = () => {
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
               <>
-                <Wifi size={16} color="#FFFFFF" />
+                <Ionicons name="wifi-outline" size={16} color="#FFFFFF" />
                 <Text style={styles.saveBtnText}>Save Connection</Text>
               </>
             )}

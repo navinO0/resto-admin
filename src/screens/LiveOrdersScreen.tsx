@@ -4,7 +4,7 @@ import { useAdminStore } from '../store/useAdminStore';
 import { OrderCard } from '../components/OrderCard';
 import { ReceiptPrintModal } from '../components/ReceiptPrintModal';
 import { TableSession } from '../types';
-import { Search, CheckCircle2 } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const OrderSkeleton = () => {
   const anim = useRef(new Animated.Value(0.3)).current;
@@ -103,7 +103,7 @@ export const LiveOrdersScreen: React.FC = () => {
     <View style={styles.container}>
       <View style={styles.filterBar}>
         <View style={styles.searchRow}>
-          <Search size={15} color="#94A3B8" />
+          <Ionicons name="search-outline" size={15} color="#94A3B8" />
           <TextInput
             style={styles.searchInput}
             value={search}
@@ -153,7 +153,7 @@ export const LiveOrdersScreen: React.FC = () => {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIcon}>
-                <CheckCircle2 size={36} color="#94A3B8" />
+                <Ionicons name="checkmark-circle" size={36} color="#94A3B8" />
               </View>
               <Text style={styles.emptyTitle}>No Orders Here</Text>
               <Text style={styles.emptySub}>

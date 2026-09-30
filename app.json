@@ -1,7 +1,5 @@
 {
   "expo": {
-    "name": "restaurant-admin-mobile",
-    "slug": "restaurant-admin-mobile",
     "name": "Kitchen Admin",
     "slug": "kitchen-admin",
     "version": "1.0.0",
@@ -15,7 +13,6 @@
     "android": {
       "package": "com.restaurant.admin",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
         "backgroundColor": "#EA580C",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
@@ -33,6 +30,17 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ]
+    ]
   }
 }

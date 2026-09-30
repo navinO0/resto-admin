@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, Switch, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { MenuItem } from '../types';
 import { useAdminStore } from '../store/useAdminStore';
-import { X, Check, Trash2, Plus } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 interface EditDishModalProps {
   item: MenuItem | null;
@@ -111,7 +111,7 @@ export const EditDishModal: React.FC<EditDishModalProps> = ({ item, onClose }) =
               {isEditing ? 'Edit Dish Details' : 'Create New Dish'}
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={20} color="#64748B" />
+              <Ionicons name="close" size={20} color="#64748B" />
             </TouchableOpacity>
           </View>
 
@@ -217,7 +217,7 @@ export const EditDishModal: React.FC<EditDishModalProps> = ({ item, onClose }) =
 
             {isEditing && (
               <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-                <Trash2 size={16} color="#E11D48" />
+                <Ionicons name="trash-outline" size={16} color="#E11D48" />
                 <Text style={styles.deleteButtonText}>Delete Dish from Menu</Text>
               </TouchableOpacity>
             )}
@@ -234,7 +234,7 @@ export const EditDishModal: React.FC<EditDishModalProps> = ({ item, onClose }) =
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <>
-                  <Check size={18} color="#FFFFFF" />
+                  <Ionicons name="checkmark" size={18} color="#FFFFFF" />
                   <Text style={styles.saveBtnText}>
                     {isEditing ? 'Save Changes' : 'Create Dish'}
                   </Text>

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Alert, Share } from 'react-native';
 import { TableSession } from '../types';
 import { useAdminStore } from '../store/useAdminStore';
-import { Printer, X, Share2 } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 interface ReceiptPrintModalProps {
   session: TableSession | null;
@@ -58,11 +58,11 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({ session, o
           
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
-              <Printer size={20} color="#0F172A" />
+              <Ionicons name="print-outline" size={20} color="#0F172A" />
               <Text style={styles.headerTitle}>Bill & KOT Slip</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X size={20} color="#64748B" />
+              <Ionicons name="close" size={20} color="#64748B" />
             </TouchableOpacity>
           </View>
 
@@ -147,12 +147,12 @@ export const ReceiptPrintModal: React.FC<ReceiptPrintModalProps> = ({ session, o
 
           <View style={styles.footer}>
             <TouchableOpacity style={styles.shareBtn} onPress={handleShareReceipt} activeOpacity={0.8}>
-              <Share2 size={16} color="#0F172A" />
+              <Ionicons name="share-social-outline" size={16} color="#0F172A" />
               <Text style={styles.shareBtnText}>Share Slip</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.printBtn} onPress={handleMockPrint} activeOpacity={0.8}>
-              <Printer size={16} color="#FFFFFF" />
+              <Ionicons name="print-outline" size={16} color="#FFFFFF" />
               <Text style={styles.printBtnText}>Print KOT / Bill</Text>
             </TouchableOpacity>
           </View>

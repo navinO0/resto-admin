@@ -13,20 +13,7 @@ import {
 } from 'react-native';
 import { useAdminStore } from '../store/useAdminStore';
 import { storage } from '../utils/storage';
-import { 
-  ChefHat, 
-  Mail, 
-  Lock, 
-  LogIn, 
-  ShieldCheck, 
-  ChevronDown, 
-  ChevronUp, 
-  Server, 
-  Eye, 
-  EyeOff,
-  CheckCircle2,
-  AlertCircle
-} from 'lucide-react-native';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 
 export const LoginScreen: React.FC = () => {
   const { login, serverUrl, setConnectionConfig } = useAdminStore();
@@ -137,12 +124,12 @@ export const LoginScreen: React.FC = () => {
         {/* Brand Header */}
         <View style={styles.header}>
           <View style={styles.logoBadge}>
-            <ChefHat size={36} color="#FFFFFF" />
+            <MaterialIcons name="restaurant-menu" size={36} color="#FFFFFF" />
           </View>
           <Text style={styles.appTitle}>Kitchen Admin</Text>
           <Text style={styles.appSubtitle}>Live Kitchen & POS Terminal</Text>
           <View style={styles.isolationBadge}>
-            <ShieldCheck size={12} color="#15803D" />
+            <Ionicons name="shield-checkmark-outline" size={12} color="#15803D" />
             <Text style={styles.isolationText}>RESTAURANT STAFF TERMINAL</Text>
           </View>
         </View>
@@ -157,7 +144,7 @@ export const LoginScreen: React.FC = () => {
           {/* Error Banner */}
           {errorMessage && (
             <View style={styles.errorBox}>
-              <AlertCircle size={16} color="#E11D48" style={{ marginTop: 2 }} />
+              <Ionicons name="alert-circle-outline" size={16} color="#E11D48" style={{ marginTop: 2 }} />
               <Text style={styles.errorText}>{errorMessage}</Text>
             </View>
           )}
@@ -166,7 +153,7 @@ export const LoginScreen: React.FC = () => {
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>STAFF EMAIL ADDRESS</Text>
             <View style={styles.inputRow}>
-              <Mail size={16} color="#94A3B8" />
+              <Ionicons name="mail-outline" size={16} color="#94A3B8" />
               <TextInput
                 style={styles.inputInner}
                 value={email}
@@ -184,7 +171,7 @@ export const LoginScreen: React.FC = () => {
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>PASSWORD</Text>
             <View style={styles.inputRow}>
-              <Lock size={16} color="#94A3B8" />
+              <Ionicons name="lock-closed-outline" size={16} color="#94A3B8" />
               <TextInput
                 style={styles.inputInner}
                 value={password}
@@ -200,9 +187,9 @@ export const LoginScreen: React.FC = () => {
                 style={styles.eyeBtn}
               >
                 {showPassword ? (
-                  <EyeOff size={18} color="#64748B" />
+                  <Ionicons name="eye-off-outline" size={18} color="#64748B" />
                 ) : (
-                  <Eye size={18} color="#64748B" />
+                  <Ionicons name="eye-outline" size={18} color="#64748B" />
                 )}
               </TouchableOpacity>
             </View>
@@ -219,7 +206,7 @@ export const LoginScreen: React.FC = () => {
               <ActivityIndicator color="#FFFFFF" size="small" />
             ) : (
               <>
-                <LogIn size={18} color="#FFFFFF" />
+                <Ionicons name="log-in-outline" size={18} color="#FFFFFF" />
                 <Text style={styles.signInBtnText}>SIGN IN</Text>
               </>
             )}
@@ -230,11 +217,11 @@ export const LoginScreen: React.FC = () => {
             style={styles.serverConfigToggle} 
             onPress={() => setShowServerConfig(!showServerConfig)}
           >
-            <Server size={14} color="#64748B" />
+            <Ionicons name="server-outline" size={14} color="#64748B" />
             <Text style={styles.serverConfigToggleText}>
               {showServerConfig ? 'Hide Server Configuration' : 'Server Setup (Optional)'}
             </Text>
-            {showServerConfig ? <ChevronUp size={14} color="#64748B" /> : <ChevronDown size={14} color="#64748B" />}
+            {showServerConfig ? <Ionicons name="chevron-up" size={14} color="#64748B" /> : <Ionicons name="chevron-down" size={14} color="#64748B" />}
           </TouchableOpacity>
 
           {showServerConfig && (
@@ -267,14 +254,14 @@ export const LoginScreen: React.FC = () => {
 
               {serverTestStatus === 'success' && (
                 <View style={styles.testSuccessBox}>
-                  <CheckCircle2 size={14} color="#16A34A" />
+                  <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
                   <Text style={styles.testSuccessText}>{serverTestMsg}</Text>
                 </View>
               )}
 
               {serverTestStatus === 'failed' && (
                 <View style={styles.testFailedBox}>
-                  <AlertCircle size={14} color="#DC2626" />
+                  <Ionicons name="alert-circle-outline" size={14} color="#DC2626" />
                   <Text style={styles.testFailedText}>{serverTestMsg}</Text>
                 </View>
               )}

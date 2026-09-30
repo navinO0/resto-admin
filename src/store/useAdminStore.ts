@@ -101,7 +101,6 @@ interface AdminState {
   createItem: (data: Partial<MenuItem>) => Promise<void>;
   deleteItem: (itemId: string) => Promise<void>;
   triggerIncomingOrderAlarm: (session: TableSession) => void;
-  dismissIncomingAlert: () => void;
   dismissIncomingAlert: (sessionId?: string) => void;
   nextIncomingAlert: () => void;
   prevIncomingAlert: () => void;
@@ -637,10 +636,6 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     backgroundAlertService.showOrderNotification(notifId, title, message, session.id);
   },
 
-  dismissIncomingAlert: () => {
-    const currentAlert = get().incomingAlert;
-    if (currentAlert) {
-      backgroundAlertService.cancelNotification(getNotificationId(currentAlert.id));
   dismissIncomingAlert: (sessionId?: string) => {
     const state = get();
     const targetId = sessionId || state.incomingAlert?.id;

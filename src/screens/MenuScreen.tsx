@@ -14,12 +14,7 @@ import {
 import { useAdminStore } from '../store/useAdminStore';
 import { EditDishModal } from '../components/EditDishModal';
 import { MenuItem } from '../types';
-import { 
-  Search, 
-  Plus, 
-  Edit3, 
-  UtensilsCrossed 
-} from 'lucide-react-native';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 
 export const MenuScreen = () => {
   const { menuItems, categories, toggleStock, currency, fetchMenu, isLoading } = useAdminStore();
@@ -58,7 +53,7 @@ export const MenuScreen = () => {
       <View style={styles.topBar}>
         <View style={styles.searchRow}>
           <View style={styles.searchBox}>
-            <Search size={15} color="#94A3B8" />
+            <Ionicons name="search-outline" size={15} color="#94A3B8" />
             <TextInput
               style={styles.searchInput}
               value={search}
@@ -72,7 +67,7 @@ export const MenuScreen = () => {
             onPress={() => setModalItem({ open: true, item: null })}
             activeOpacity={0.8}
           >
-            <Plus size={16} color="#FFFFFF" />
+            <Ionicons name="add" size={16} color="#FFFFFF" />
             <Text style={styles.addDishBtnText}>Add Dish</Text>
           </TouchableOpacity>
         </View>
@@ -161,14 +156,14 @@ export const MenuScreen = () => {
                 onPress={() => setModalItem({ open: true, item })}
                 activeOpacity={0.7}
               >
-                <Edit3 size={15} color="#475569" />
+                <Ionicons name="pencil-outline" size={15} color="#475569" />
               </TouchableOpacity>
             </View>
           </View>
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <UtensilsCrossed size={40} color="#94A3B8" />
+            <MaterialIcons name="restaurant" size={40} color="#94A3B8" />
             <Text style={styles.emptyTitle}>No Dishes Found</Text>
             <Text style={styles.emptySub}>
               {search ? `No items match "${search}"` : 'No items in this category.'}
