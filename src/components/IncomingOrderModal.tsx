@@ -208,7 +208,6 @@ export const IncomingOrderModal: React.FC = () => {
 
           <View style={styles.actions}>
             <TouchableOpacity style={styles.acceptButton} onPress={handleAccept} activeOpacity={0.85}>
-              <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
               <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
               <Text style={styles.acceptText}>
                 {isTakeaway ? 'ACCEPT TAKEAWAY' : 'ACCEPT TO KITCHEN'}
@@ -217,7 +216,6 @@ export const IncomingOrderModal: React.FC = () => {
 
             <View style={styles.secondaryRow}>
               <TouchableOpacity style={styles.declineButton} onPress={handleDecline} activeOpacity={0.85}>
-                <Ionicons name="close-circle-outline" size={18} color="#E11D48" />
                 <Ionicons name="close-circle-outline" size={16} color="#E11D48" />
                 <Text style={styles.declineText}>Decline</Text>
               </TouchableOpacity>
@@ -225,10 +223,6 @@ export const IncomingOrderModal: React.FC = () => {
               <TouchableOpacity style={styles.silenceButton} onPress={dismissIncomingAlert} activeOpacity={0.85}>
                 <Ionicons name="volume-mute-outline" size={18} color="#475569" />
                 <Text style={styles.silenceText}>Silence</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.silenceButton} onPress={silenceAlarmOnly} activeOpacity={0.85}>
-                <Ionicons name="volume-mute-outline" size={16} color="#475569" />
-                <Text style={styles.silenceText}>Mute Sound</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -259,7 +253,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 7,
     width: '100%',
     maxWidth: 440,
     maxHeight: '85%',
@@ -279,7 +273,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF7ED',
     borderWidth: 1,
     borderColor: '#FFEDD5',
-    borderRadius: 10,
+    borderRadius: 7,
     paddingHorizontal: 12,
     paddingVertical: 7,
     marginBottom: 12,
@@ -350,7 +344,7 @@ const styles = StyleSheet.create({
   },
   customerBox: {
     backgroundColor: '#F8FAFC',
-    borderRadius: 10,
+    borderRadius: 7,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
@@ -424,10 +418,7 @@ const styles = StyleSheet.create({
   infoBanner: {
     flexDirection: 'row',
     backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 14,
-    borderRadius: 10,
+    borderRadius: 7,
     padding: 10,
     marginBottom: 12,
     borderWidth: 1,
@@ -460,7 +451,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF3C7',
     padding: 10,
     padding: 8,
-    borderRadius: 8,
+    borderRadius: 7,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: '#FDE68A',
@@ -543,10 +534,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 7,
     gap: 8,
     shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 4 },
@@ -577,11 +566,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 6,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 7,
+    gap: 6,
     gap: 4,
   },
   declineText: {
@@ -596,11 +583,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 6,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 7,
+    gap: 6,
     gap: 4,
   },
   silenceText: {
@@ -617,7 +602,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 7,
   },
   dismissText: {
     color: '#64748B',

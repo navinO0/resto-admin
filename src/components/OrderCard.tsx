@@ -506,7 +506,7 @@ const getStatusStyle = (status: OrderStatus) => {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     marginBottom: 14,
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 10,
+    borderRadius: 7,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -816,7 +816,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderRadius: 7,
     paddingVertical: 8,
     alignItems: 'center',
   },
@@ -828,7 +828,7 @@ const styles = StyleSheet.create({
   acceptBtn: {
     flex: 2,
     backgroundColor: '#EA580C',
-    borderRadius: 8,
+    borderRadius: 7,
     paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
@@ -896,7 +896,7 @@ const styles = StyleSheet.create({
   statusChip: {
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 12,
+    borderRadius: 7,
   },
   statusChipText: {
     fontSize: 10,
@@ -906,7 +906,7 @@ const styles = StyleSheet.create({
   compactItemsRow: {
     backgroundColor: '#F8FAFC',
     padding: 8,
-    borderRadius: 8,
+    borderRadius: 7,
     marginBottom: 8,
   },
   compactItemsText: {
@@ -917,7 +917,7 @@ const styles = StyleSheet.create({
   expandedItemsList: {
     backgroundColor: '#F8FAFC',
     padding: 8,
-    borderRadius: 8,
+    borderRadius: 7,
     marginBottom: 8,
   },
   itemRow: {
@@ -959,7 +959,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 7,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 7,
     backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -1018,7 +1018,7 @@ const styles = StyleSheet.create({
   printIconButton: {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: 7,
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1031,7 +1031,7 @@ const styles = StyleSheet.create({
     borderColor: '#FECDD3',
     paddingHorizontal: 10,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 7,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1046,7 +1046,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 7,
     gap: 4,
   },
   markPaidText: {
@@ -1060,7 +1060,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 7,
     gap: 4,
   },
   checkoutText: {
