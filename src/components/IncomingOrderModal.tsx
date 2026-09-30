@@ -123,7 +123,7 @@ export const IncomingOrderModal: React.FC = () => {
             <View style={styles.headerText}>
               <Text style={styles.alertTag}>
                 {incomingAlert.needsAttention
-                  ? 'GUEST ASSISTANCE CALL'
+                  ? (incomingAlert.attentionType === 'payment' ? 'GUEST PAYMENT NOTIFICATION' : 'GUEST ASSISTANCE CALL')
                   : isTakeaway ? 'INCOMING TAKEAWAY / ONLINE ORDER' : 'NEW DINE-IN ORDER'}
               </Text>
               <Text style={styles.title} numberOfLines={1}>{customerName}</Text>
@@ -207,20 +207,35 @@ export const IncomingOrderModal: React.FC = () => {
           </ScrollView>
 
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.acceptButton} onPress={handleAccept} activeOpacity={0.85}>
-              <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.acceptText}>
-                {isTakeaway ? 'ACCEPT TAKEAWAY' : 'ACCEPT TO KITCHEN'}
-              </Text>
-            </TouchableOpacity>
+            {incomingAlert.needsAttention ? (
+              <TouchableOpacity 
+                style={[styles.acceptButton, { backgroundColor: '#3B82F6' }]} 
+                onPress={() => dismissIncomingAlert(incomingAlert.id)} 
+                activeOpacity={0.85}
+              >
+                <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
+                <Text style={styles.acceptText}>
+                  {incomingAlert.attentionType === 'payment' ? 'ACKNOWLEDGE PAYMENT' : 'ACKNOWLEDGE CALL'}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.acceptButton} onPress={handleAccept} activeOpacity={0.85}>
+                <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
+                <Text style={styles.acceptText}>
+                  {isTakeaway ? 'ACCEPT TAKEAWAY' : 'ACCEPT TO KITCHEN'}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.secondaryRow}>
-              <TouchableOpacity style={styles.declineButton} onPress={handleDecline} activeOpacity={0.85}>
-                <Ionicons name="close-circle-outline" size={16} color="#E11D48" />
-                <Text style={styles.declineText}>Decline</Text>
-              </TouchableOpacity>
+              {!incomingAlert.needsAttention && (
+                <TouchableOpacity style={styles.declineButton} onPress={handleDecline} activeOpacity={0.85}>
+                  <Ionicons name="close-circle-outline" size={16} color="#E11D48" />
+                  <Text style={styles.declineText}>Decline</Text>
+                </TouchableOpacity>
+              )}
 
-              <TouchableOpacity style={styles.silenceButton} onPress={dismissIncomingAlert} activeOpacity={0.85}>
+              <TouchableOpacity style={styles.silenceButton} onPress={silenceAlarmOnly} activeOpacity={0.85}>
                 <Ionicons name="volume-mute-outline" size={18} color="#475569" />
                 <Text style={styles.silenceText}>Silence</Text>
               </TouchableOpacity>
