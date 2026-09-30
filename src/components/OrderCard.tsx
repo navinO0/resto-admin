@@ -656,10 +656,7 @@ const styles = StyleSheet.create({
   headerRight: {
     padding: 4,
   },
-  pendingAlertBox: {
-    backgroundColor: '#FFFBEB',
-    padding: 12,
-  },
+
   customerStrip: {
     backgroundColor: '#F8FAFC',
     borderBottomWidth: 1,
@@ -668,8 +665,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 5,
   },
-  pendingHeader: {
-  },
+
   customerStripTop: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -677,16 +673,14 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     gap: 8,
   },
-  pendingTag: {
-  },
+
   customerNameGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     flex: 1,
   },
-  pendingTagText: {
-  },
+
   customerNameText: {
     fontSize: 12,
     fontWeight: '700',
@@ -717,7 +711,6 @@ const styles = StyleSheet.create({
   locBadgeText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#64748B',
     color: '#C2410C',
   },
   callStripRow: {
@@ -952,7 +945,6 @@ const styles = StyleSheet.create({
   },
   statusButtonsRow: {
     flexDirection: 'row',
-    gap: 6,
     gap: 5,
   },
   statusBtn: {
@@ -969,7 +961,6 @@ const styles = StyleSheet.create({
     borderColor: '#0F172A',
   },
   statusBtnText: {
-    fontSize: 11,
     fontSize: 10,
     fontWeight: '700',
     color: '#64748B',
@@ -1012,7 +1003,6 @@ const styles = StyleSheet.create({
   footerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
     gap: 6,
   },
   printIconButton: {
