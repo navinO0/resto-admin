@@ -40,7 +40,16 @@ export const SettingsScreen: React.FC = () => {
     setAcceptingTableOrders,
     setFrontendUrl,
     updateAcceptedPincodes
+    updateAcceptedPincodes,
+    availableUpdate,
+    checkForAppUpdate,
+    setUpdateModalVisible,
   } = useAdminStore();
+
+  const [currentAppVersion, setCurrentAppVersion] = useState<string>('1.0.0');
+  const [currentVersionCode, setCurrentVersionCode] = useState<number>(1);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
+  const [updateCheckStatus, setUpdateCheckStatus] = useState<string | null>(null);
 
   const [url, setUrl] = useState(storedUrl);
   const [tenant, setTenant] = useState(storedTenant);
@@ -84,7 +93,33 @@ export const SettingsScreen: React.FC = () => {
 
   useEffect(() => {
     backgroundAlertService.isBatteryOptimizationIgnored().then(setIsBatteryOptIgnored);
+    backgroundAlertService.getAppVersion().then((info) => {
+      if (info) {
+        setCurrentAppVersion(info.versionName);
+        setCurrentVersionCode(info.versionCode);
+      }
+    });
   }, []);
+
+  const handleCheckForUpdates = async () => {
+    setIsCheckingUpdate(true);
+    setUpdateCheckStatus(null);
+    try {
+      const update = await checkForAppUpdate(false);
+      if (update && update.isUpdateAvailable) {
+        setUpdateCheckStatus(`New version v${update.version} available!`);
+        setUpdateModalVisible(true);
+      } else if (update) {
+        setUpdateCheckStatus('App is up to date.');
+      } else {
+        setUpdateCheckStatus('Could not reach update server.');
+      }
+    } catch (e) {
+      setUpdateCheckStatus('Update check failed.');
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
 
   useEffect(() => {
     if (frontendUrl) {
@@ -582,6 +617,70 @@ export const SettingsScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>APP UPDATES & SYSTEM VERSION</Text>
+        <View style={styles.box}>
+          <View style={styles.featureRow}>
+            <View style={styles.featureLeft}>
+              <Ionicons name="phone-portrait-outline" size={18} color="#0F172A" />
+              <View>
+                <Text style={styles.featureTitle}>Installed Version</Text>
+                <Text style={{ fontSize: 11, color: '#64748B', fontWeight: '600' }}>
+                  com.restaurant.admin • Build {currentVersionCode}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.pillGreen}>
+              <Text style={styles.pillGreenText}>v{currentAppVersion}</Text>
+            </View>
+          </View>
+
+          {availableUpdate && availableUpdate.isUpdateAvailable ? (
+            <View style={styles.updateAvailableBanner}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="cloud-download-outline" size={20} color="#EA580C" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.updateBannerTitle}>Update Available: v{availableUpdate.version}</Text>
+                  <Text style={styles.updateBannerSub}>
+                    Build {availableUpdate.versionCode} ready • {(availableUpdate.fileSize / (1024 * 1024)).toFixed(1)} MB
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.updateBannerBtn}
+                onPress={() => setUpdateModalVisible(true)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="download-outline" size={15} color="#FFFFFF" />
+                <Text style={styles.updateBannerBtnText}>Review & Install Update</Text>
+              </TouchableOpacity>
+            </View>
+          ) : updateCheckStatus ? (
+            <View style={{ marginTop: 10, paddingVertical: 4 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: updateCheckStatus.includes('up to date') ? '#16A34A' : '#64748B' }}>
+                {updateCheckStatus}
+              </Text>
+            </View>
+          ) : null}
+
+          <TouchableOpacity
+            style={[styles.saveBtn, { marginTop: 12 }]}
+            onPress={handleCheckForUpdates}
+            disabled={isCheckingUpdate}
+            activeOpacity={0.8}
+          >
+            {isCheckingUpdate ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <Ionicons name="refresh-outline" size={16} color="#FFFFFF" />
+                <Text style={styles.saveBtnText}>Check for Updates</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
     </ScrollView>
   </KeyboardAvoidingView>
   );
@@ -993,5 +1092,39 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#94A3B8',
     fontStyle: 'italic',
+  },
+  updateAvailableBanner: {
+    marginTop: 12,
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FFEDD5',
+    borderRadius: 10,
+    padding: 12,
+    gap: 10,
+  },
+  updateBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#9A3412',
+  },
+  updateBannerSub: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#C2410C',
+    marginTop: 2,
+  },
+  updateBannerBtn: {
+    backgroundColor: '#EA580C',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  updateBannerBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });

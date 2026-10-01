@@ -143,6 +143,24 @@ export const apiService = {
       params: { isCompleted: 'all' },
     });
     return Array.isArray(res.data) ? res.data : [];
+    try {
+      const res = await getAxiosInstance().get('/sessions', {
+        params: { isCompleted: 'all' },
+      });
+      return Array.isArray(res.data) ? res.data : [];
+    } catch (err: any) {
+      console.warn('[API] getHistoricalSessions fallback:', err?.message);
+      console.warn('[API] getHistoricalSessions fallback to isCompleted=true:', err?.message);
+      try {
+        const fallbackRes = await getAxiosInstance().get('/sessions');
+        const fallbackRes = await getAxiosInstance().get('/sessions', {
+          params: { isCompleted: true },
+        });
+        return Array.isArray(fallbackRes.data) ? fallbackRes.data : [];
+      } catch {
+        return [];
+      }
+    }
   },
 
   async getActiveSessions(): Promise<TableSession[]> {

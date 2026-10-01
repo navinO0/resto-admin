@@ -41,6 +41,16 @@ class MainActivity : ReactActivity() {
     BackgroundAlertModule.handleIntent(intent)
   }
 
+  override fun onResume() {
+    super.onResume()
+    BackgroundAlertModule.isAppForeground = true
+  }
+
+  override fun onPause() {
+    super.onPause()
+    BackgroundAlertModule.isAppForeground = false
+  }
+
   /**
    * Returns the name of the main component registered from JavaScript. This is used to schedule
    * rendering of the component.

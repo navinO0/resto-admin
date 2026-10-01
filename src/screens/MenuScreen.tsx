@@ -21,6 +21,7 @@ export const MenuScreen = () => {
   
   const [search, setSearch] = useState('');
   const [selectedCatId, setSelectedCatId] = useState<string>('all');
+  const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'out_of_stock'>('all');
   const [modalItem, setModalItem] = useState<{ open: boolean; item: MenuItem | null }>({ open: false, item: null });
   const [updatingStockId, setUpdatingStockId] = useState<string | null>(null);
 
@@ -35,7 +36,16 @@ export const MenuScreen = () => {
 
   const getCatName = (catId: string) => categories.find((c) => c.id === catId)?.name ?? '';
 
+  const isOutOfStock = (item: MenuItem) => item.isAvailable === false || (item as any).isActive === false;
+
+  const inStockCount = menuItems.filter((m) => !isOutOfStock(m)).length;
+  const outOfStockCount = menuItems.filter((m) => isOutOfStock(m)).length;
+
   const filteredItems = menuItems.filter((item) => {
+    // Stock filter
+    if (stockFilter === 'in_stock' && isOutOfStock(item)) return false;
+    if (stockFilter === 'out_of_stock' && !isOutOfStock(item)) return false;
+
     const matchesCat =
       selectedCatId === 'all' ||
       item.categoryId === selectedCatId ||
@@ -69,6 +79,49 @@ export const MenuScreen = () => {
           >
             <Ionicons name="add" size={16} color="#FFFFFF" />
             <Text style={styles.addDishBtnText}>Add Dish</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Stock Status Filters */}
+        <View style={styles.stockFilterRow}>
+          <TouchableOpacity
+            style={[styles.stockFilterBtn, stockFilter === 'all' ? styles.stockFilterBtnActive : null]}
+            onPress={() => setStockFilter('all')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.stockFilterText, stockFilter === 'all' ? styles.stockFilterTextActive : null]}>
+              All ({menuItems.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.stockFilterBtn, stockFilter === 'in_stock' ? styles.stockFilterBtnActiveGreen : null]}
+            onPress={() => setStockFilter('in_stock')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.stockIndicatorGreen} />
+            <Text style={[styles.stockFilterText, stockFilter === 'in_stock' ? styles.stockFilterTextActive : null]}>
+              In Stock ({inStockCount})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.stockFilterBtn, 
+              stockFilter === 'out_of_stock' ? styles.stockFilterBtnActiveRed : null,
+              outOfStockCount > 0 && stockFilter !== 'out_of_stock' ? styles.stockFilterBtnHasOut : null
+            ]}
+            onPress={() => setStockFilter('out_of_stock')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.stockIndicatorRed} />
+            <Text style={[
+              styles.stockFilterText, 
+              stockFilter === 'out_of_stock' ? styles.stockFilterTextActive : null,
+              outOfStockCount > 0 && stockFilter !== 'out_of_stock' ? styles.stockFilterTextRed : null
+            ]}>
+              Out of Stock ({outOfStockCount})
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -114,7 +167,7 @@ export const MenuScreen = () => {
           <RefreshControl refreshing={isLoading} onRefresh={fetchMenu} colors={['#EA580C']} />
         }
         renderItem={({ item }) => (
-          <View style={styles.dishCard}>
+          <View style={[styles.dishCard, isOutOfStock(item) ? styles.dishCardOut : null]}>
             <View style={styles.dishLeft}>
               <View style={[styles.vegBadge, item.isVeg !== false ? styles.vegBorder : styles.nonVegBorder]}>
                 <View style={[styles.vegDot, item.isVeg !== false ? styles.vegDotColor : styles.nonVegDotColor]} />
@@ -135,8 +188,8 @@ export const MenuScreen = () => {
 
             <View style={styles.dishRight}>
               <View style={styles.stockToggle}>
-                <Text style={[styles.stockLabel, item.isAvailable !== false ? styles.inStockText : styles.outStockText]}>
-                  {item.isAvailable !== false ? 'In Stock' : 'Out of Stock'}
+                <Text style={[styles.stockLabel, !isOutOfStock(item) ? styles.inStockText : styles.outStockText]}>
+                  {!isOutOfStock(item) ? 'In Stock' : 'Out of Stock'}
                 </Text>
                 {updatingStockId === item.id ? (
                   <View style={{ width: 44, height: 28, alignItems: 'center', justifyContent: 'center' }}>
@@ -144,9 +197,9 @@ export const MenuScreen = () => {
                   </View>
                 ) : (
                   <Switch
-                    value={item.isAvailable !== false}
+                    value={!isOutOfStock(item)}
                     onValueChange={(val) => handleToggleStock(item.id, val)}
-                    trackColor={{ false: '#E2E8F0', true: '#10B981' }}
+                    trackColor={{ false: '#FECDD3', true: '#10B981' }}
                     thumbColor="#FFFFFF"
                   />
                 )}
@@ -166,7 +219,11 @@ export const MenuScreen = () => {
             <MaterialIcons name="restaurant" size={40} color="#94A3B8" />
             <Text style={styles.emptyTitle}>No Dishes Found</Text>
             <Text style={styles.emptySub}>
-              {search ? `No items match "${search}"` : 'No items in this category.'}
+              {search 
+                ? `No items match "${search}"` 
+                : stockFilter === 'out_of_stock'
+                ? 'Great! There are no out of stock items.'
+                : 'No items in this category.'}
             </Text>
           </View>
         }
@@ -257,6 +314,63 @@ const styles = StyleSheet.create({
   catTextActive: {
     color: '#FFFFFF',
   },
+  stockFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 6,
+  },
+  stockFilterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 7,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  stockFilterBtnActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  stockFilterBtnActiveGreen: {
+    backgroundColor: '#059669',
+    borderColor: '#059669',
+  },
+  stockFilterBtnActiveRed: {
+    backgroundColor: '#E11D48',
+    borderColor: '#E11D48',
+  },
+  stockFilterBtnHasOut: {
+    backgroundColor: '#FFF1F2',
+    borderColor: '#FECDD3',
+  },
+  stockFilterText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  stockFilterTextActive: {
+    color: '#FFFFFF',
+  },
+  stockFilterTextRed: {
+    color: '#E11D48',
+  },
+  stockIndicatorGreen: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  stockIndicatorRed: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#E11D48',
+  },
   resultBar: {
     paddingHorizontal: 16,
     paddingVertical: 7,
@@ -270,7 +384,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 70,
   },
   dishCard: {
     flexDirection: 'row',
@@ -287,6 +401,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 4,
     elevation: 1,
+  },
+  dishCardOut: {
+    borderColor: '#FECDD3',
+    backgroundColor: '#FFFBFB',
   },
   dishLeft: {
     flexDirection: 'row',

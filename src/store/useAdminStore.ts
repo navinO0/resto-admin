@@ -4,6 +4,7 @@ import { apiService, setApiConfig, setAuthToken, getAuthToken } from '../api/cli
 import { alarmService } from '../services/alarmService';
 import { socketService } from '../services/socketService';
 import { backgroundAlertService } from '../services/backgroundAlertService';
+import { updateService, AppUpdateInfo } from '../services/updateService';
 import { storage } from '../utils/storage';
 
 export function getNotificationId(sessionId: string): number {
@@ -83,6 +84,8 @@ interface AdminState {
   acceptingTableOrders: boolean;
   frontendUrl: string;
   acceptedPincodes: string[];
+  availableUpdate: AppUpdateInfo | null;
+  isUpdateModalVisible: boolean;
 
   // Actions
   initAuthAndSync: () => Promise<void>;
@@ -118,6 +121,9 @@ interface AdminState {
   setAcceptingTableOrders: (value: boolean) => Promise<void>;
   setFrontendUrl: (url: string) => Promise<boolean>;
   updateAcceptedPincodes: (pincodes: string[]) => Promise<boolean>;
+  setAvailableUpdate: (info: AppUpdateInfo | null) => void;
+  setUpdateModalVisible: (visible: boolean) => void;
+  checkForAppUpdate: (showModalIfAvailable?: boolean) => Promise<AppUpdateInfo | null>;
 }
 
 const DEFAULT_SERVER_URL = process.env.EXPO_PUBLIC_API_URL || 'https://vq88x6oinnilh5tsbx87swga.navin.lol';
@@ -151,6 +157,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   frontendUrl: '',
   acceptedPincodes: [],
   tenantConfig: null,
+  availableUpdate: null,
+  isUpdateModalVisible: false,
 
   initAuthAndSync: async () => {
     try {
@@ -186,6 +194,9 @@ export const useAdminStore = create<AdminState>((set, get) => ({
           // Connect socket to this tenant's isolated room
           socketService.connect(activeUrl, tenantId);
 
+          // Keep background foreground service running for incoming orders even if app swiped from recents
+          backgroundAlertService.startForegroundService();
+
           // Fetch tenant branding & operations config
           try {
             const config = await apiService.testConnection(activeUrl, tenantId);
@@ -197,8 +208,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
             }
           } catch (_) {}
 
-          // Fetch tenant-scoped sessions and menu
-          await Promise.all([get().fetchTenantConfig(), get().fetchTables(), get().fetchSessions(), get().fetchMenu()]);
+          // Fetch tenant-scoped sessions, history, tables and menu
+          await Promise.all([get().fetchTenantConfig(), get().fetchTables(), get().fetchSessions(), get().fetchMenu(), get().fetchHistory()]);
         } catch (parseErr) {
           console.warn('[AdminStore] Corrupt saved user profile. Clearing session:', parseErr);
           await storage.removeItem('auth_token');
@@ -288,6 +299,9 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       // Connect socket specifically to the verified tenant room
       socketService.connect(activeUrl, verifiedTenantId);
 
+      // Keep background foreground service running for incoming orders even if app swiped from recents
+      backgroundAlertService.startForegroundService();
+
       // Fetch restaurant branding
       try {
         const config = await apiService.testConnection(activeUrl, verifiedTenantId);
@@ -300,7 +314,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       } catch (_) {}
 
       // Fetch data for this tenant only
-      await Promise.all([get().fetchTenantConfig(), get().fetchTables(), get().fetchSessions(), get().fetchMenu()]);
+      await Promise.all([get().fetchTenantConfig(), get().fetchTables(), get().fetchSessions(), get().fetchMenu(), get().fetchHistory()]);
 
       return { success: true };
     } catch (err: any) {
@@ -318,6 +332,9 @@ export const useAdminStore = create<AdminState>((set, get) => ({
 
     // Silently stop any ringing alarms
     alarmService.stopAlert();
+
+    // Stop persistent background foreground service
+    backgroundAlertService.stopForegroundService();
 
     // Clear persistent storage
     await storage.removeItem('auth_token');
@@ -823,6 +840,28 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       console.error('[AdminStore] Failed to update acceptedPincodes:', err);
       set({ isLoading: false });
       return false;
+    }
+  },
+
+  setAvailableUpdate: (info: AppUpdateInfo | null) => set({ availableUpdate: info }),
+  setUpdateModalVisible: (visible: boolean) => set({ isUpdateModalVisible: visible }),
+
+  checkForAppUpdate: async (showModalIfAvailable = true) => {
+    try {
+      const update = await updateService.checkForUpdates(get().serverUrl);
+      if (update && update.isUpdateAvailable) {
+        set({ availableUpdate: update });
+        if (showModalIfAvailable) {
+          set({ isUpdateModalVisible: true });
+        }
+        return update;
+      } else {
+        set({ availableUpdate: update || null });
+        return update;
+      }
+    } catch (err) {
+      console.warn('[AdminStore] Check for app update failed:', err);
+      return null;
     }
   },
 }));

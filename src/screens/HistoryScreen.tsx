@@ -66,10 +66,15 @@ export const HistoryScreen: React.FC = () => {
   
   const getSessionStatus = (session: TableSession) => {
     const orders = session.orders || [];
+    const isCancelled =
+      (orders.length > 0 && orders.every((o: any) => ['cancelled', 'declined', 'rejected'].includes((o.status || '').toLowerCase()))) ||
+      (session.isCompleted && session.paymentStatus !== 'paid' && orders.every((o: any) => (o.items || []).every((i: any) => ['cancelled', 'declined', 'rejected'].includes((i.status || '').toLowerCase()))));
+    if (isCancelled) return 'cancelled';
     if (session.paymentStatus === 'paid') return 'billed';
     if (session.isCompleted) return 'completed';
     if (orders.length > 0 && orders.every((o: any) => o.status === 'cancelled')) return 'cancelled';
     if (orders.length > 0 && orders.some((o: any) => ['accepted', 'preparing', 'ready', 'served'].includes(o.status))) return 'accepted';
+    if (orders.length > 0 && orders.some((o: any) => ['accepted', 'preparing', 'ready', 'served'].includes((o.status || '').toLowerCase()))) return 'accepted';
     return 'other';
   };
 
@@ -164,11 +169,11 @@ export const HistoryScreen: React.FC = () => {
               <View style={styles.emptyIcon}>
                 <Ionicons name="checkmark-circle" size={36} color="#94A3B8" />
               </View>
-              <Text style={styles.emptyTitle}>No Orders Here</Text>
+              <Text style={styles.emptyTitle}>No Order History</Text>
               <Text style={styles.emptySub}>
                 {activeFilter === 'all'
-                  ? 'No active orders or dining tables right now. New customer orders will ring automatically.'
-                  : `No active orders matching the "${activeFilter}" filter.`}
+                  ? 'No order history found yet. Completed, billed, and cancelled orders will appear here.'
+                  : `No historical orders matching the "${activeFilter}" filter.`}
               </Text>
             </View>
           }
@@ -237,7 +242,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 70,
   },
   emptyContainer: {
     alignItems: 'center',

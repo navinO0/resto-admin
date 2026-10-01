@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ActivityIndicator, AppState, AppStateStatus } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAdminStore } from './src/store/useAdminStore';
 import { socketService } from './src/services/socketService';
 import { backgroundAlertService } from './src/services/backgroundAlertService';
@@ -12,7 +12,159 @@ import { TablesScreen } from './src/screens/TablesScreen';
 import { HistoryScreen } from './src/screens/HistoryScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { IncomingOrderModal } from './src/components/IncomingOrderModal';
+import { UpdateModal } from './src/components/UpdateModal';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+
+function MainDashboard() {
+  const insets = useSafeAreaInsets();
+  const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'tables' | 'history' | 'settings'>('orders');
+  const {
+    activeSessions,
+    restaurantName,
+    isConnected,
+    fetchSessions,
+    fetchMenu,
+    fetchHistory,
+    isLoading,
+    currentUser,
+  } = useAdminStore();
+
+  const totalActiveOrders = activeSessions.length;
+  const pendingCount = activeSessions.filter((s) =>
+    (s.orders || []).some((o) => o.status === 'pending' || o.status === 'new')
+  ).length;
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+      {/* ── Top App Bar ── */}
+      <View style={styles.appBar}>
+        <View style={styles.brandRow}>
+          <View style={styles.logoBadge}>
+            <MaterialIcons name="restaurant-menu" size={20} color="#FFFFFF" />
+          </View>
+          <View style={styles.brandTextCol}>
+            <Text style={styles.brandTitle} numberOfLines={1}>{restaurantName}</Text>
+            <View style={styles.statusRow}>
+              {isConnected ? (
+                <>
+                  <View style={styles.onlineDot} />
+                  <Text style={styles.statusText}>LIVE SYNCED</Text>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={styles.reconnectChip}
+                  onPress={() => socketService.manualReconnect()}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="wifi" size={10} color="#FFFFFF" />
+                  <Text style={styles.reconnectText}>TAP TO RECONNECT</Text>
+                </TouchableOpacity>
+              )}
+              {currentUser ? (
+                <>
+                  <Text style={styles.statusDivider}>•</Text>
+                  <Text style={styles.userBadge}>{currentUser.name || 'Staff'}</Text>
+                </>
+              ) : null}
+            </View>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.refreshBtn}
+          onPress={() => { fetchSessions(); fetchMenu(); fetchHistory(); }}
+          disabled={isLoading}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="refresh-outline" size={17} color="#64748B" />
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Main Tab Content ── */}
+      <View style={styles.screenContainer}>
+        {activeTab === 'orders' && <LiveOrdersScreen />}
+        {activeTab === 'menu' && <MenuScreen />}
+        {activeTab === 'tables' && <TablesScreen />}
+        {activeTab === 'history' && <HistoryScreen />}
+        {activeTab === 'settings' && <SettingsScreen />}
+      </View>
+
+      {/* ── Bottom Navigation Bar (Dynamic safe area bottom padding) ── */}
+      <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+        <TouchableOpacity
+          style={styles.tabBtn}
+          onPress={() => setActiveTab('orders')}
+          activeOpacity={0.8}
+        >
+          <View>
+            <Ionicons name="list-outline" size={22} color={activeTab === 'orders' ? '#EA580C' : '#94A3B8'} />
+            {totalActiveOrders > 0 && (
+              <View style={[styles.badge, pendingCount > 0 ? styles.badgePending : null]}>
+                <Text style={styles.badgeText}>{totalActiveOrders}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.tabLabel, activeTab === 'orders' ? styles.tabLabelActive : null]}>
+            Orders
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.tabBtn}
+          onPress={() => setActiveTab('menu')}
+          activeOpacity={0.8}
+        >
+          <MaterialIcons name="restaurant" size={22} color={activeTab === 'menu' ? '#EA580C' : '#94A3B8'} />
+          <Text style={[styles.tabLabel, activeTab === 'menu' ? styles.tabLabelActive : null]}>
+            Menu & Stock
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.tabBtn}
+          onPress={() => setActiveTab('tables')}
+          activeOpacity={0.8}
+        >
+          <MaterialIcons name="grid-on" size={22} color={activeTab === 'tables' ? '#EA580C' : '#94A3B8'} />
+          <Text style={[styles.tabLabel, activeTab === 'tables' ? styles.tabLabelActive : null]}>
+            Tables
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.tabBtn}
+          onPress={() => {
+            setActiveTab('history');
+            fetchHistory();
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="time-outline" size={22} color={activeTab === 'history' ? '#EA580C' : '#94A3B8'} />
+          <Text style={[styles.tabLabel, activeTab === 'history' ? styles.tabLabelActive : null]}>
+            History
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.tabBtn}
+          onPress={() => setActiveTab('settings')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="settings-outline" size={22} color={activeTab === 'settings' ? '#EA580C' : '#94A3B8'} />
+          <Text style={[styles.tabLabel, activeTab === 'settings' ? styles.tabLabelActive : null]}>
+            Settings
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Persistent Ringing Incoming Order Alert Modal ── */}
+      <IncomingOrderModal />
+
+    </SafeAreaView>
+  );
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'tables' | 'history' | 'settings'>('orders');
@@ -26,10 +178,13 @@ export default function App() {
     fetchTables,
     fetchTenantConfig,
     fetchMenu,
+    fetchHistory,
     isLoading,
     isInitialLoading,
     currentUser,
     isAuthenticated
+    isAuthenticated,
+    checkForAppUpdate
   } = useAdminStore();
 
   const handleOpenOrder = async (sessionId: string) => {
@@ -67,6 +222,8 @@ export default function App() {
       if (initialSessionId) {
         handleOpenOrder(initialSessionId);
       }
+      // Check for app updates
+      checkForAppUpdate(true);
     });
 
     // Request notification permission for Android 13+
@@ -91,7 +248,10 @@ export default function App() {
           fetchSessions();
           fetchMenu();
           fetchTables();
+          fetchHistory();
         }
+        // Check for updates on foreground resume
+        checkForAppUpdate(true);
         // Also check if an intent brought us back
         backgroundAlertService.getInitialSessionId().then((sessionId) => {
           if (sessionId) {
@@ -102,9 +262,7 @@ export default function App() {
       appStateRef.current = nextState;
     });
     return () => subscription.remove();
-  }, [isAuthenticated, fetchSessions,
-    fetchTables,
-    fetchTenantConfig, fetchMenu]);
+  }, [isAuthenticated, fetchSessions, fetchTables, fetchTenantConfig, fetchMenu, fetchHistory]);
 
   // 1. Initial Loading / Splash Screen
   if (isInitialLoading) {
@@ -131,141 +289,14 @@ export default function App() {
     );
   }
 
-  // 3. Authenticated: Render Main Merchant Dashboard
-  const totalActiveOrders = activeSessions.length;
-  const pendingCount = activeSessions.filter((s) =>
-    (s.orders || []).some((o) => o.status === 'pending' || o.status === 'new')
-  ).length;
-
+  // 3. Authenticated: Render Main Dashboard inside SafeAreaProvider
+  // 2. Main Dashboard & Login Screen with UpdateModal overlay
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-
-        {/* ── Top App Bar ── */}
-        <View style={styles.appBar}>
-          <View style={styles.brandRow}>
-            <View style={styles.logoBadge}>
-              <MaterialIcons name="restaurant-menu" size={20} color="#FFFFFF" />
-            </View>
-            <View style={styles.brandTextCol}>
-              <Text style={styles.brandTitle} numberOfLines={1}>{restaurantName}</Text>
-              <View style={styles.statusRow}>
-                {isConnected ? (
-                  <>
-                    <View style={styles.onlineDot} />
-                    <Text style={styles.statusText}>LIVE SYNCED</Text>
-                  </>
-                ) : (
-                  /* Tappable RECONNECT chip when offline */
-                  <TouchableOpacity
-                    style={styles.reconnectChip}
-                    onPress={() => socketService.manualReconnect()}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="wifi" size={10} color="#FFFFFF" />
-                    <Text style={styles.reconnectText}>TAP TO RECONNECT</Text>
-                  </TouchableOpacity>
-                )}
-                {currentUser ? (
-                  <>
-                    <Text style={styles.statusDivider}>•</Text>
-                    <Text style={styles.userBadge}>{currentUser.name || 'Staff'}</Text>
-                  </>
-                ) : null}
-              </View>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={styles.refreshBtn}
-            onPress={() => { fetchSessions(); fetchMenu(); }}
-            disabled={isLoading}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="refresh-outline" size={17} color="#64748B" />
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Main Tab Content ── */}
-        <View style={styles.screenContainer}>
-          {activeTab === 'orders' && <LiveOrdersScreen />}
-          {activeTab === 'menu' && <MenuScreen />}
-          {activeTab === 'tables' && <TablesScreen />}
-          {activeTab === 'history' && <HistoryScreen />}
-          {activeTab === 'settings' && <SettingsScreen />}
-        </View>
-
-        {/* ── Bottom Navigation Bar ── */}
-        <View style={styles.bottomNav}>
-          <TouchableOpacity
-            style={styles.tabBtn}
-            onPress={() => setActiveTab('orders')}
-            activeOpacity={0.8}
-          >
-            <View>
-              <Ionicons name="list-outline" size={22} color={activeTab === 'orders' ? '#EA580C' : '#94A3B8'} />
-              {totalActiveOrders > 0 && (
-                <View style={[styles.badge, pendingCount > 0 ? styles.badgePending : null]}>
-                  <Text style={styles.badgeText}>{totalActiveOrders}</Text>
-                </View>
-              )}
-            </View>
-            <Text style={[styles.tabLabel, activeTab === 'orders' ? styles.tabLabelActive : null]}>
-              Orders
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.tabBtn}
-            onPress={() => setActiveTab('menu')}
-            activeOpacity={0.8}
-          >
-            <MaterialIcons name="restaurant" size={22} color={activeTab === 'menu' ? '#EA580C' : '#94A3B8'} />
-            <Text style={[styles.tabLabel, activeTab === 'menu' ? styles.tabLabelActive : null]}>
-              Menu & Stock
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.tabBtn}
-            onPress={() => setActiveTab('tables')}
-            activeOpacity={0.8}
-          >
-            <MaterialIcons name="grid-on" size={22} color={activeTab === 'tables' ? '#EA580C' : '#94A3B8'} />
-            <Text style={[styles.tabLabel, activeTab === 'tables' ? styles.tabLabelActive : null]}>
-              Tables
-            </Text>
-          </TouchableOpacity>
-
-          
-          <TouchableOpacity
-            style={styles.tabBtn}
-            onPress={() => setActiveTab('history')}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="time-outline" size={22} color={activeTab === 'history' ? '#EA580C' : '#94A3B8'} />
-            <Text style={[styles.tabLabel, activeTab === 'history' ? styles.tabLabelActive : null]}>
-              History
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.tabBtn}
-            onPress={() => setActiveTab('settings')}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="settings-outline" size={22} color={activeTab === 'settings' ? '#EA580C' : '#94A3B8'} />
-            <Text style={[styles.tabLabel, activeTab === 'settings' ? styles.tabLabelActive : null]}>
-              Settings
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Persistent Ringing Incoming Order Alert Modal ── */}
-        <IncomingOrderModal />
-
-      </SafeAreaView>
+      <MainDashboard />
+      <StatusBar barStyle={isAuthenticated ? 'dark-content' : 'light-content'} backgroundColor={isAuthenticated ? '#FFFFFF' : '#0F172A'} />
+      {isAuthenticated ? <MainDashboard /> : <LoginScreen />}
+      <UpdateModal />
     </SafeAreaProvider>
   );
 }
@@ -410,8 +441,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
-    paddingVertical: 8,
-    paddingBottom: 10,
+    paddingTop: 8,
   },
   tabBtn: {
     flex: 1,
