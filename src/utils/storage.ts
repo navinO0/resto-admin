@@ -12,12 +12,8 @@ export const storage = {
     if (Platform.OS === 'web') {
       try {
         if (typeof localStorage !== 'undefined') {
-          return localStorage.getItem(key);
           const val = localStorage.getItem(key);
           if (val !== null) memoryCache[key] = val;
-          if (val !== null) {
-            memoryCache[key] = val;
-          }
           return val;
         }
       } catch {}

@@ -172,6 +172,11 @@ export const MenuScreen = () => {
               <View style={[styles.vegBadge, item.isVeg !== false ? styles.vegBorder : styles.nonVegBorder]}>
                 <View style={[styles.vegDot, item.isVeg !== false ? styles.vegDotColor : styles.nonVegDotColor]} />
               </View>
+              {!(item.categoryId === 'drinks' || item.category?.toLowerCase() === 'drinks' || item.category?.toLowerCase() === 'beverages') && (
+                <View style={[styles.vegBadge, item.isVeg !== false ? styles.vegBorder : styles.nonVegBorder]}>
+                  <View style={[styles.vegDot, item.isVeg !== false ? styles.vegDotColor : styles.nonVegDotColor]} />
+                </View>
+              )}
               <View style={styles.dishInfo}>
                 <View style={styles.dishHeaderRow}>
                   <Text style={styles.dishName}>{item.name}</Text>

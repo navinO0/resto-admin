@@ -149,10 +149,8 @@ export const apiService = {
       });
       return Array.isArray(res.data) ? res.data : [];
     } catch (err: any) {
-      console.warn('[API] getHistoricalSessions fallback:', err?.message);
       console.warn('[API] getHistoricalSessions fallback to isCompleted=true:', err?.message);
       try {
-        const fallbackRes = await getAxiosInstance().get('/sessions');
         const fallbackRes = await getAxiosInstance().get('/sessions', {
           params: { isCompleted: true },
         });

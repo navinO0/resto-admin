@@ -39,7 +39,6 @@ export const SettingsScreen: React.FC = () => {
     setAcceptingOnlineOrders,
     setAcceptingTableOrders,
     setFrontendUrl,
-    updateAcceptedPincodes
     updateAcceptedPincodes,
     availableUpdate,
     checkForAppUpdate,

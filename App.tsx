@@ -182,7 +182,6 @@ export default function App() {
     isLoading,
     isInitialLoading,
     currentUser,
-    isAuthenticated
     isAuthenticated,
     checkForAppUpdate
   } = useAdminStore();
