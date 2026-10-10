@@ -24,21 +24,26 @@ class AlarmService {
       console.warn('[AlarmService] Vibration warning:', e);
     }
 
+    // 2. Play sound via Android Native ALARM stream (Option B - USAGE_ALARM)
     try {
-      if (this.player) {
-        try {
-          this.player.pause();
-          this.player.release();
-        } catch (_) {}
-        this.player = null;
-      }
-
       const audioUri = soundUri || DEFAULT_ALARM_URL;
-      this.player = createAudioPlayer({ uri: audioUri });
-      this.player.loop = true;
-      this.player.volume = 1.0;
-      this.player.play();
-      console.log('[AlarmService] ✅ Audio playback active.');
+      const nativeSuccess = await backgroundAlertService.playAlarmSound(audioUri);
+
+      if (!nativeSuccess) {
+        if (this.player) {
+          try {
+            this.player.pause();
+            this.player.release();
+          } catch (_) {}
+          this.player = null;
+        }
+
+        this.player = createAudioPlayer({ uri: audioUri });
+        this.player.loop = true;
+        this.player.volume = 1.0;
+        this.player.play();
+      }
+      console.log('[AlarmService] ✅ Audio playback active (ALARM stream).');
     } catch (err) {
       console.error('[AlarmService] Failed to play alarm audio:', err);
     }
@@ -55,6 +60,9 @@ class AlarmService {
     try {
       Vibration.cancel();
     } catch (_) {}
+
+    // Stop native Android ALARM stream playback
+    backgroundAlertService.stopAlarmSound();
 
     if (this.player) {
       try {

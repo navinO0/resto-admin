@@ -18,6 +18,9 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.concurrent.thread
+import android.media.AudioAttributes
+import android.media.AudioManager
+import android.media.RingtoneManager
 
 class OrderForegroundService : Service() {
 
@@ -70,6 +73,13 @@ class OrderForegroundService : Service() {
             notificationManager.createNotificationChannel(fgChannel)
 
             // High-priority channel for order alerts
+            val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+
             val ordersChannel = NotificationChannel(
                 ORDERS_CHANNEL_ID,
                 "New Orders & Alerts",
@@ -79,6 +89,7 @@ class OrderForegroundService : Service() {
                 enableLights(true)
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 500, 250, 500)
+                setSound(soundUri, audioAttributes)
                 lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
             }
             notificationManager.createNotificationChannel(ordersChannel)
@@ -268,16 +279,20 @@ class OrderForegroundService : Service() {
             val notifId = (sessionId.hashCode() and 0x7FFFFFFF)
             val pendingIntent = PendingIntent.getActivity(this, notifId, intent, flag)
 
+            val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
             val builder = NotificationCompat.Builder(this, ORDERS_CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(message))
                 .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setCategory(NotificationCompat.CATEGORY_CALL)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
-                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setSound(soundUri, AudioManager.STREAM_ALARM)
+                .setDefaults(NotificationCompat.DEFAULT_VIBRATE or NotificationCompat.DEFAULT_LIGHTS)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

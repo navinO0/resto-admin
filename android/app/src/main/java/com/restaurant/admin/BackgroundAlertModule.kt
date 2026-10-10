@@ -25,9 +25,15 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import android.os.Environment
+import android.media.AudioAttributes
+import android.media.AudioManager
+import android.media.MediaPlayer
+import android.media.RingtoneManager
 
 class BackgroundAlertModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
+
+    private var alarmMediaPlayer: MediaPlayer? = null
 
     init {
         instance = this
@@ -54,11 +60,19 @@ class BackgroundAlertModule(private val reactContext: ReactApplicationContext) :
             val channelId = "orders_channel"
             val channelName = "New Orders & Alerts"
             val importance = NotificationManager.IMPORTANCE_HIGH
+            val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+
             val channel = NotificationChannel(channelId, channelName, importance).apply {
                 description = "Alerts for incoming restaurant orders and customer calls"
                 enableLights(true)
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 500, 250, 500)
+                setSound(soundUri, audioAttributes)
                 lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
             }
             val notificationManager = reactContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -112,16 +126,20 @@ class BackgroundAlertModule(private val reactContext: ReactApplicationContext) :
                 flag
             )
 
+            val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
             val builder = NotificationCompat.Builder(reactContext, "orders_channel")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(message))
                 .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setCategory(NotificationCompat.CATEGORY_CALL)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
-                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setSound(soundUri, AudioManager.STREAM_ALARM)
+                .setDefaults(NotificationCompat.DEFAULT_VIBRATE or NotificationCompat.DEFAULT_LIGHTS)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 
             val notificationManager = reactContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -138,6 +156,108 @@ class BackgroundAlertModule(private val reactContext: ReactApplicationContext) :
             notificationManager.cancel(id.toInt())
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    @ReactMethod
+    fun playAlarmSound(soundUrl: String?, promise: Promise) {
+        try {
+            stopAlarmSoundSync()
+
+            val audioAttributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+
+            val uri = if (!soundUrl.isNullOrEmpty() && (soundUrl.startsWith("http://") || soundUrl.startsWith("https://"))) {
+                Uri.parse(soundUrl)
+            } else {
+                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            }
+
+            val mp = MediaPlayer().apply {
+                setAudioAttributes(audioAttributes)
+                setDataSource(reactContext, uri)
+                isLooping = true
+                setVolume(1.0f, 1.0f)
+                setOnPreparedListener { player ->
+                    try {
+                        player.start()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+                setOnErrorListener { _, _, _ ->
+                    try {
+                        stopAlarmSoundSync()
+                        val fallbackUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                        val fallbackMp = MediaPlayer().apply {
+                            setAudioAttributes(audioAttributes)
+                            setDataSource(reactContext, fallbackUri)
+                            isLooping = true
+                            setVolume(1.0f, 1.0f)
+                            prepare()
+                            start()
+                        }
+                        alarmMediaPlayer = fallbackMp
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                    true
+                }
+                prepareAsync()
+            }
+            alarmMediaPlayer = mp
+            promise.resolve(true)
+        } catch (e: Exception) {
+            try {
+                val audioAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+                val fallbackUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                val fallbackMp = MediaPlayer().apply {
+                    setAudioAttributes(audioAttributes)
+                    setDataSource(reactContext, fallbackUri)
+                    isLooping = true
+                    setVolume(1.0f, 1.0f)
+                    prepare()
+                    start()
+                }
+                alarmMediaPlayer = fallbackMp
+                promise.resolve(true)
+            } catch (err: Exception) {
+                promise.reject("ERR_ALARM_PLAY", err.message)
+            }
+        }
+    }
+
+    private fun stopAlarmSoundSync() {
+        try {
+            alarmMediaPlayer?.let {
+                if (it.isPlaying) {
+                    it.stop()
+                }
+                it.reset()
+                it.release()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            alarmMediaPlayer = null
+        }
+    }
+
+    @ReactMethod
+    fun stopAlarmSound(promise: Promise) {
+        try {
+            stopAlarmSoundSync()
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.resolve(false)
         }
     }
 

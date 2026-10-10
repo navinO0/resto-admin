@@ -31,6 +31,37 @@ class BackgroundAlertService {
   }
 
   /**
+   * Plays the alarm sound via the Android ALARM audio stream (Option B).
+   * Bypasses the Media volume slider so kitchen alerts stay audible even if media is muted.
+   */
+  async playAlarmSound(soundUri?: string): Promise<boolean> {
+    if (Platform.OS === 'android' && BackgroundAlertModule?.playAlarmSound) {
+      try {
+        return await BackgroundAlertModule.playAlarmSound(soundUri || null);
+      } catch (err) {
+        console.warn('[BackgroundAlertService] Failed to play native alarm sound:', err);
+        return false;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Stops the native alarm sound playback.
+   */
+  async stopAlarmSound(): Promise<boolean> {
+    if (Platform.OS === 'android' && BackgroundAlertModule?.stopAlarmSound) {
+      try {
+        return await BackgroundAlertModule.stopAlarmSound();
+      } catch (err) {
+        console.warn('[BackgroundAlertService] Failed to stop native alarm sound:', err);
+        return false;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Cancels a specific notification by ID.
    */
   cancelNotification(id: number) {

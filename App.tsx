@@ -289,12 +289,10 @@ export default function App() {
   }
 
   // 3. Authenticated: Render Main Dashboard inside SafeAreaProvider
-  // 2. Main Dashboard & Login Screen with UpdateModal overlay
   return (
     <SafeAreaProvider>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <MainDashboard />
-      <StatusBar barStyle={isAuthenticated ? 'dark-content' : 'light-content'} backgroundColor={isAuthenticated ? '#FFFFFF' : '#0F172A'} />
-      {isAuthenticated ? <MainDashboard /> : <LoginScreen />}
       <UpdateModal />
     </SafeAreaProvider>
   );
